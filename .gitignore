@@ -1,0 +1,15 @@
+# すべてのファイルを無視
+*
+
+!.gitignore
+# ファイルを許可
+!/coco/
+!/coco/code-experiments/
+!/coco/code-experiments/build/
+!/coco/code-experiments/build/c/
+!/coco/code-experiments/build/c/example_experiment.c
+!/coco/code-experiments/build/c/analysis.py
+!/coco/code-experiments/build/c/analysis2.py
+!/coco/code-experiments/build/c/coco.py
+!/coco/code-experiments/build/c/Makefile
+!/coco/code-experiments/build/c/script.py
