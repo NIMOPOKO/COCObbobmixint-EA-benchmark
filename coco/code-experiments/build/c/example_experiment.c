@@ -16,8 +16,8 @@
 
 //GA_SETTINGS
 // #define ALGORITHM 0 //0:de,1:ga
-// #define ENCODING 0 //0:basic encoding, 1:new encoding
-// #define APPROACH 0//when encoding is 0, 0:L, 1:B, when encoding is 1, 0:U-Lf, 1:U-Lm, 2:U-Lb, 3:U-B
+// #define ENCODING 0 //0:basic encoding[0,l], 1:new encoding[0,1], 2:basic2 encoding[0-0.5,l+0.49999]
+// #define APPROACH 0//if encoding is 0, 0:L, 1:B, if encoding is 1, 0:U-Lf, 1:U-Lm, 2:U-Lb, 3:U-B, if encoding is 2, 0:U2-L, 1:U2-B
 
 //DE
 #define DE_N 100
@@ -188,6 +188,14 @@ int main(void) {
         example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U-B-DE", random_generator);
       }
     }
+    else if(ENCODING == 2){//basic2 encoding
+      if(APPROACH == 0){
+        example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U2-L-DE", random_generator);
+      }
+      else if(APPROACH == 1){
+        example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U2-B-DE", random_generator);
+      }
+    }
   }
   else if(ALGORITHM == 1){
 
@@ -252,7 +260,7 @@ void example_experiment(const char *suite_name,
         strcat(titlestr,"d/B-");
       }
     }
-    else{
+    else if(ENCODING == 1){
       if(APPROACH == 0){
         strcat(titlestr,"d/U-Lf-");
       }
@@ -264,6 +272,14 @@ void example_experiment(const char *suite_name,
       }
       else if(APPROACH == 3){
         strcat(titlestr,"d/U-B-");
+      }
+    }
+    else if(ENCODING == 2){
+      if(APPROACH == 0){
+        strcat(titlestr,"d/U2-L-");
+      }
+      else{
+        strcat(titlestr,"d/U2-B-");
       }
     }
     sprintf(num, "%d", instance_cnt);
@@ -325,12 +341,22 @@ void ga_group_initialization(double** population, size_t dimension, const double
       else if(ENCODING == 1){
         population[i][j] = coco_random_uniform(random_generator);
       }
+      else if(ENCODING == 2){
+        if(lower_bounds[j] == -5){
+          double range = upper_bounds[j] - lower_bounds[j];
+          population[i][j] = lower_bounds[j] + coco_random_uniform(random_generator) * range;
+        }
+        else{
+          double range = (upper_bounds[j] + 0.5 - FLT_EPSILON) - (lower_bound[j] - 0.5);
+          population[i][j] = (coco_random_uniform(random_generator) / (double)RAND_MAX) * range - 0.5;
+        }
+      }
     }
   }
 }
 
 void ga_group_encoding(double** x, double** tmp, size_t dimension, const double* lower_bounds, const double* upper_bounds){
-  if((ENCODING == 0 && APPROACH == 1) || (ENCODING == 1 && APPROACH == 3)){
+  if((ENCODING == 0 && APPROACH == 1) || (ENCODING == 1 && APPROACH == 3) || (ENCODING == 2 && APPROACH == 1)){
     for (int i = 0; i < DE_N; i++) {
       for(int j = 0; j < dimension; j++){
         tmp[i][j] = x[i][j];
@@ -338,7 +364,7 @@ void ga_group_encoding(double** x, double** tmp, size_t dimension, const double*
     }
   }
   for (int i = 0; i < DE_N; i++) {
-    if(ENCODING == 0){
+    if(ENCODING == 0 || ENCODING == 2){
       if(APPROACH == 0){
         round_vec(x[i],dimension,lower_bounds,upper_bounds);
         for(int j = 0; j < dimension; j++){
@@ -346,7 +372,7 @@ void ga_group_encoding(double** x, double** tmp, size_t dimension, const double*
         }
 
       }
-      else{
+      else if(APPROACH){
         round_vec(tmp[i],dimension,lower_bounds,upper_bounds);
       }
     }
