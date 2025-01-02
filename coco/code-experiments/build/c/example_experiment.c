@@ -347,8 +347,8 @@ void ga_group_initialization(double** population, size_t dimension, const double
           population[i][j] = lower_bounds[j] + coco_random_uniform(random_generator) * range;
         }
         else{
-          double range = (upper_bounds[j] + 0.5 - FLT_EPSILON) - (lower_bound[j] - 0.5);
-          population[i][j] = (coco_random_uniform(random_generator) / (double)RAND_MAX) * range - 0.5;
+          double range = (upper_bounds[j] + 0.5 - FLT_EPSILON) - (lower_bounds[j] - 0.5);
+          population[i][j] = lower_bounds[j] - 0.5 + coco_random_uniform(random_generator) * range;
         }
       }
     }
@@ -394,7 +394,7 @@ void ga_group_encoding(double** x, double** tmp, size_t dimension, const double*
 void round_vec(double *x, size_t dimention_size, const double *lower_bounds, const double *upper_bounds){
   double y[16] = {0};
   double y_star;
-
+  double min_dist = 0;
   for(int i = 0; i < dimention_size; i++){
     if(lower_bounds[i] != -5){
       // 補助値を計算
@@ -402,7 +402,12 @@ void round_vec(double *x, size_t dimention_size, const double *lower_bounds, con
           y[j] = j;
       }
       //連続値に最も近い補助値 y^* を求める
-      double min_dist = fabs(y[0] - x[i]);
+      if(x[i] <  0){
+        min_dist = fabs(y[0] + x[i]);  
+      }
+      else{
+        min_dist = fabs(y[0] - x[i]);
+      }
       y_star = y[0];
       for (int j = 1; j <= (int)upper_bounds[i]; j++) {
           double dist = fabs(y[j] - x[i]);
@@ -665,17 +670,9 @@ void de_nopcm(evaluate_function_t evaluate_func,
         }
   }
   //initialization
-  ga_group_initialization(population, dimension, upper_bounds, lower_bounds, random_generator);
+  ga_group_initialization(population, dimension, lower_bounds, upper_bounds, random_generator);
   //encoding
   ga_group_encoding(population, tmp, dimension, lower_bounds, upper_bounds);
-  // for(i = 0; i < DE_N; i++){
-  //   for(j = 0; j < dimension; j++){
-  //     printf("%lf ", population[i][j]);
-  //   }
-  //   printf("\n");
-  // }
-  // printf("\n");
-  // exit(1);
   //evaluation
   for (i = 0; i < DE_N; i++) {
     evaluate_func(tmp[i], functions_values);
@@ -714,12 +711,20 @@ void de_nopcm(evaluate_function_t evaluate_func,
             mutate[j] = (upper_bounds[j] + population[i][j]) / 2.0;
           }
         }
-        else{
+        else if(ENCODING == 1){
           if (mutate[j] < 0){
             mutate[j] = (population[i][j]) / 2.0;
           }
           else if(mutate[j] > 1){
             mutate[j] = (1 + population[i][j]) / 2.0;
+          }
+        }
+        else if(ENCODING == 2){
+          if (mutate[j] < lower_bounds[j] - 0.5){
+            mutate[j] = (lower_bounds[j] - 0.5 + population[i][j]) / 2.0;
+          }
+          else if(mutate[j] > upper_bounds[j] + 0.5 - FLT_EPSILON){
+            mutate[j] = (upper_bounds[j] + 0.5 - FLT_EPSILON + population[i][j]) / 2.0;
           }
         }
       }
