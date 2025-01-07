@@ -256,7 +256,7 @@ int main(void) {
   coco_random_free(random_generator);
 
   return 0;
-}  MY_PROBLEM my_problem[10];
+}
 
 /**
  * A simple example of benchmarking random search on a given suite with default instances
