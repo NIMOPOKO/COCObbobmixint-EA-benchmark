@@ -391,7 +391,7 @@ void init_problem(MY_PROBLEM *my_problem){
  * @param observer_name Name of the observer matching with the chosen suite (e.g. "bbob-biobj"
  * when using the "bbob-biobj-ext" suite).
  * @param observer_options Options of the observer (e.g. "result_folder: folder_name")
- * @param random_generator The random number generator.
+ * @param random_generator The random number generator
  */
 void my_example_experiment(const char *file_name,
                         coco_random_state_t *random_generator) {
