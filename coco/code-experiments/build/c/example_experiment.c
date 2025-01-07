@@ -14,7 +14,10 @@
 
 #include "coco.h"
 
-//GA_SETTINGS
+//BENCHMARKING_SETTINGS
+#define PROBLEM_CLASS 1 //0:coco, 1:my_class
+
+//EA_SETTINGS
 // #define ALGORITHM 0 //0:de,1:ga
 // #define ENCODING 0 //0:basic encoding[0,l], 1:new encoding[0,1], 2:basic2 encoding[0-0.5,l+0.49999]
 // #define APPROACH 0//if encoding is 0, 0:L, 1:B, if encoding is 1, 0:U-Lf, 1:U-Lm, 2:U-Lb, 3:U-B, if encoding is 2, 0:U2-L, 1:U2-B
@@ -24,6 +27,14 @@
 #define DE_CR 0.9
 #define DE_F 0.5
 
+//MY_PROBREM_SETTINGS
+#define NUMBER_OF_PROBLEM 540
+typedef struct my_problem{
+  char* function_name;
+  int integer[5]; //[0,1],[0,3],[0,7],[0,15],[0,31]
+  int dimension;
+  int instance; //location of optimal solution
+}MY_PROBLEM;
 
 //COCO_SETTINGS
 int instance_cnt = 0;
@@ -87,14 +98,14 @@ static void timing_data_time_problem(timing_data_t *timing_data, coco_problem_t 
 static void timing_data_finalize(timing_data_t *timing_data);
 char *get_short_function_number(const char *problem_name);
 
-//GA prototype
-void ga_group_initialization(double** population,
+//EA prototype
+void ea_group_initialization(double** population,
                                   size_t dimension,
                                   const double *lower_bounds,
                                   const double *upper_bounds,
                                   coco_random_state_t *random_generator);
 
-void ga_group_encoding(double** x,
+void ea_group_encoding(double** x,
                        double** tmp,
                        size_t dimension,
                        const double *lower_bounds,
@@ -113,7 +124,7 @@ void decoding_vec(double *population,
                   size_t dimention_size,
                   const double *upper_bounds);
 
-void ga_sd_calc(double* sum,
+void ea_sd_calc(double* sum,
                 double* sum2,
                 double** tmp,
                 size_t dimension,
@@ -135,7 +146,6 @@ void de_nopcm(evaluate_function_t evaluate_func,
  */
 int main(void) {
   coco_random_state_t *random_generator = coco_random_new(RANDOM_SEED);
-
   /* Change the log level to "warning" to get less output */
   coco_set_log_level("info");
 
@@ -165,40 +175,79 @@ int main(void) {
    * http://numbbo.github.io/coco-doc/C/#suite-parameters and
    * http://numbbo.github.io/coco-doc/C/#observer-parameters. */
 
-  if(ALGORITHM == 0){//de
-    if(ENCODING == 0){//basic encoding
-      if(APPROACH == 0){
-        example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:L-DE", random_generator);
+  if(PROBLEM_CLASS == 0){
+    if(ALGORITHM == 0){//de
+      if(ENCODING == 0){//basic encoding
+        if(APPROACH == 0){
+          example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:L-DE", random_generator);
+        }
+        else if(APPROACH == 1){
+          example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:B-DE", random_generator);
+        }
       }
-      else if(APPROACH == 1){
-        example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:B-DE", random_generator);
+      else if(ENCODING == 1){//new encoding
+        if(APPROACH == 0){
+          example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U-Lf-DE", random_generator);
+        }
+        else if(APPROACH == 1){
+          example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U-Lm-DE", random_generator);
+        }
+        else if(APPROACH == 2){
+          example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U-Lb-DE", random_generator);
+        }
+        else if(APPROACH == 3){
+          example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U-B-DE", random_generator);
+        }
+      }
+      else if(ENCODING == 2){//basic2 encoding
+        if(APPROACH == 0){
+          example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U2-L-DE", random_generator);
+        }
+        else if(APPROACH == 1){
+          example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U2-B-DE", random_generator);
+        }
       }
     }
-    else if(ENCODING == 1){//new encoding
-      if(APPROACH == 0){
-        example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U-Lf-DE", random_generator);
-      }
-      else if(APPROACH == 1){
-        example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U-Lm-DE", random_generator);
-      }
-      else if(APPROACH == 2){
-        example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U-Lb-DE", random_generator);
-      }
-      else if(APPROACH == 3){
-        example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U-B-DE", random_generator);
-      }
-    }
-    else if(ENCODING == 2){//basic2 encoding
-      if(APPROACH == 0){
-        example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U2-L-DE", random_generator);
-      }
-      else if(APPROACH == 1){
-        example_experiment("bbob-mixint", "", "bbob-mixint", "result_folder:U2-B-DE", random_generator);
-      }
+    else if(ALGORITHM == 1){
+
     }
   }
-  else if(ALGORITHM == 1){
+  else{
+    if(ALGORITHM == 0){//de
+      if(ENCODING == 0){//basic encoding
+        if(APPROACH == 0){
+          my_example_experiment("L-DE", random_generator);
+        }
+        else if(APPROACH == 1){
+          my_example_experiment("B-DE", random_generator);
+        }
+      }
+      else if(ENCODING == 1){//new encoding
+        if(APPROACH == 0){
+          my_example_experiment("U-Lf-DE", random_generator);
+        }
+        else if(APPROACH == 1){
+          my_example_experiment("U-Lm-DE", random_generator);
+        }
+        else if(APPROACH == 2){
+          my_example_experiment("U-Lb-DE", random_generator);
+        }
+        else if(APPROACH == 3){
+          my_example_experiment("U-B-DE", random_generator);
+        }
+      }
+      else if(ENCODING == 2){//basic2 encoding
+        if(APPROACH == 0){
+          my_example_experiment("U2-L-DE", random_generator);
+        }
+        else if(APPROACH == 1){
+          my_example_experiment("U2-B-DE", random_generator);
+        }
+      }
+    }
+    else if(ALGORITHM == 1){
 
+    }
   }
 
   printf("Done!\n");
@@ -207,7 +256,7 @@ int main(void) {
   coco_random_free(random_generator);
 
   return 0;
-}
+}  MY_PROBLEM my_problem[10];
 
 /**
  * A simple example of benchmarking random search on a given suite with default instances
@@ -329,8 +378,122 @@ void example_experiment(const char *suite_name,
   coco_suite_free(suite);
 }
 
-//GA_DEFAULT_PARTS
-void ga_group_initialization(double** population, size_t dimension, const double* lower_bounds, const double* upper_bounds, coco_random_state_t *random_generator){
+void init_problem(MY_PROBLEM *my_problem){
+
+}
+
+/**
+ * A simple example of benchmarking random search on a given suite with default instances
+ * that can serve also as a timing experiment.
+ *
+ * @param suite_name Name of the suite (e.g. "bbob" or "bbob-biobj").
+ * @param suite_options Options of the suite (e.g. "dimensions: 2,3,5,10,20 instance_indices: 1-5").
+ * @param observer_name Name of the observer matching with the chosen suite (e.g. "bbob-biobj"
+ * when using the "bbob-biobj-ext" suite).
+ * @param observer_options Options of the observer (e.g. "result_folder: folder_name")
+ * @param random_generator The random number generator.
+ */
+void my_example_experiment(const char *file_name,
+                        coco_random_state_t *random_generator) {
+  MY_PROBLEM my_problem[NUMBER_OF_PROBLEM];
+  init_problem(my_problem);
+  /* Iterate over all problems in the suite */
+  while ((PROBLEM = coco_suite_get_next_problem(suite, observer)) != NULL) {
+    const char *function_name = coco_problem_get_name(PROBLEM);
+    char *short_function_name = get_short_function_number(function_name);
+    size_t dimension = coco_problem_get_dimension(PROBLEM);
+
+    //filename select
+    char titlestr[128] = "./output/";
+    char num[30] = "";
+    if(ALGORITHM == 0){
+      strcat(titlestr,"de/");
+    }
+    else if(ALGORITHM == 1){
+      strcat(titlestr,"ga/");
+    }
+    strcat(titlestr,short_function_name);
+    sprintf(num, "/%ld", dimension);
+    strcat(titlestr,num);
+    if(ENCODING == 0){
+      if(APPROACH == 0){
+        strcat(titlestr,"d/L-");
+      }
+      else{
+        strcat(titlestr,"d/B-");
+      }
+    }
+    else if(ENCODING == 1){
+      if(APPROACH == 0){
+        strcat(titlestr,"d/U-Lf-");
+      }
+      else if(APPROACH == 1){
+        strcat(titlestr,"d/U-Lm-");
+      }
+      else if(APPROACH == 2){
+        strcat(titlestr,"d/U-Lb-");
+      }
+      else if(APPROACH == 3){
+        strcat(titlestr,"d/U-B-");
+      }
+    }
+    else if(ENCODING == 2){
+      if(APPROACH == 0){
+        strcat(titlestr,"d/U2-L-");
+      }
+      else{
+        strcat(titlestr,"d/U2-B-");
+      }
+    }
+    sprintf(num, "%d", instance_cnt);
+    strcat(titlestr,num);
+    strcat(titlestr,".txt");
+    /* Run the algorithm at least once */
+    for (run = 1; run <= 1 + INDEPENDENT_RESTARTS; run++) {
+      long evaluations_done = (long) (coco_problem_get_evaluations(PROBLEM) + coco_problem_get_evaluations_constraints(PROBLEM));
+      long evaluations_remaining = (long) (dimension * BUDGET_MULTIPLIER) - evaluations_done;
+
+      /* Break the loop if the target was hit or there are no more remaining evaluations */
+      if ((coco_problem_final_target_hit(PROBLEM) && coco_problem_get_number_of_constraints(PROBLEM) == 0) || (evaluations_remaining <= 0))
+        break;
+
+      /* Call the optimization algorithm for the remaining number of evaluations */
+      if(ALGORITHM == 0){
+        de_nopcm(evaluate_function,
+                        dimension,
+                        coco_problem_get_number_of_objectives(PROBLEM),
+                        coco_problem_get_smallest_values_of_interest(PROBLEM),
+                        coco_problem_get_largest_values_of_interest(PROBLEM),
+                        (size_t) evaluations_remaining,
+                        random_generator,
+                        titlestr);
+      }
+      else if(ALGORITHM == 1){
+
+      }
+
+      /* Break the loop if the algorithm performed no evaluations or an unexpected thing happened */
+      if (coco_problem_get_evaluations(PROBLEM) == evaluations_done) {
+        printf("WARNING: Budget has not been exhausted (%lu/%lu evaluations done)!\n",
+            (unsigned long) evaluations_done, (unsigned long) dimension * BUDGET_MULTIPLIER);
+        break;
+      }
+      else if (coco_problem_get_evaluations(PROBLEM) < evaluations_done)
+        coco_error("Something unexpected happened - function evaluations were decreased!");
+    }
+    /* Keep track of time */
+    timing_data_time_problem(timing_data, PROBLEM);
+  }
+
+  /* Output and finalize the timing data */
+  timing_data_finalize(timing_data);
+
+  coco_observer_free(observer);
+  coco_suite_free(suite);
+}
+
+//EA_DEFAULT_PARTS
+void ea_group_initialization(double** population, size_t dimension, const double* lower_bounds, const double* upper_bounds, coco_random_state_t *random_generator){
   //initialization
   for (int i = 0; i < DE_N; i++) {
     for (int j = 0; j < dimension; j++) {
@@ -355,7 +518,7 @@ void ga_group_initialization(double** population, size_t dimension, const double
   }
 }
 
-void ga_group_encoding(double** x, double** tmp, size_t dimension, const double* lower_bounds, const double* upper_bounds){
+void ea_group_encoding(double** x, double** tmp, size_t dimension, const double* lower_bounds, const double* upper_bounds){
   if((ENCODING == 0 && APPROACH == 1) || (ENCODING == 1 && APPROACH == 3) || (ENCODING == 2 && APPROACH == 1)){
     for (int i = 0; i < DE_N; i++) {
       for(int j = 0; j < dimension; j++){
@@ -372,7 +535,7 @@ void ga_group_encoding(double** x, double** tmp, size_t dimension, const double*
         }
 
       }
-      else if(APPROACH){
+      else if(APPROACH == 1){
         round_vec(tmp[i],dimension,lower_bounds,upper_bounds);
       }
     }
@@ -487,7 +650,7 @@ void decoding_vec(double *x, size_t dimention_size, const double *upper_bounds){
   }
 }
 
-void ga_sd_calc(double* sum, double* sum2, double** tmp, size_t dimension, FILE *fp){
+void ea_sd_calc(double* sum, double* sum2, double** tmp, size_t dimension, FILE *fp){
   for (int j = 0; j < dimension; j++) {
     sum[j] = 0;
     sum2[j] = 0;
@@ -670,9 +833,9 @@ void de_nopcm(evaluate_function_t evaluate_func,
         }
   }
   //initialization
-  ga_group_initialization(population, dimension, lower_bounds, upper_bounds, random_generator);
+  ea_group_initialization(population, dimension, lower_bounds, upper_bounds, random_generator);
   //encoding
-  ga_group_encoding(population, tmp, dimension, lower_bounds, upper_bounds);
+  ea_group_encoding(population, tmp, dimension, lower_bounds, upper_bounds);
   //evaluation
   for (i = 0; i < DE_N; i++) {
     evaluate_func(tmp[i], functions_values);
@@ -683,7 +846,7 @@ void de_nopcm(evaluate_function_t evaluate_func,
   while(evaluation  < max_budget){
     //hyoujyunhensa+output
     if(output_cnt == 0){
-      ga_sd_calc(sum, sum2, tmp, dimension, fp);
+      ea_sd_calc(sum, sum2, tmp, dimension, fp);
     }
     output_cnt++;
     if(output_cnt == dimension){
@@ -747,7 +910,7 @@ void de_nopcm(evaluate_function_t evaluate_func,
       }
     }
     //encoding
-    ga_group_encoding(trial, tmp, dimension, lower_bounds, upper_bounds);
+    ea_group_encoding(trial, tmp, dimension, lower_bounds, upper_bounds);
     //evaluation
     for (i = 0; i < DE_N; i++) {
       evaluate_func(tmp[i], functions_values);
