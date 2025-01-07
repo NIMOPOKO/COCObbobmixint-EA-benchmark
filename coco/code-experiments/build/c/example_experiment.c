@@ -15,7 +15,7 @@
 #include "coco.h"
 
 //BENCHMARKING_SETTINGS
-#define PROBLEM_CLASS 1 //0:coco, 1:my_class
+#define PROBLEM_CLASS 0 //0:coco, 1:my_class
 
 //EA_SETTINGS
 // #define ALGORITHM 0 //0:de,1:ga
