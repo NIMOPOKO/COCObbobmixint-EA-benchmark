@@ -27,14 +27,29 @@
 #define DE_CR 0.9
 #define DE_F 0.5
 
-//MY_PROBREM_SETTINGS
-#define NUMBER_OF_PROBLEM 540
+//MY_COCO_SETTINGS
+#define NUMBER_OF_PROBLEM 450
+#define NUMBER_OF_TARGET 51
+
 typedef struct my_problem{
   char* function_name;
-  int integer[5]; //[0,1],[0,3],[0,7],[0,15],[0,31]
-  int dimension;
-  int instance; //location of optimal solution
+  double *smallest; //[0,1],[0,3],[0,7],[0,15],[0,31]
+  double *largest;
+  double *optimal;
+  int evaluate_result[NUMBER_OF_TARGET];
+  size_t dimension;
+  int evaluation_cnt;
+  size_t instance; //location of optimal solution
+  size_t end_flag;
 }MY_PROBLEM;
+
+double target[NUMBER_OF_TARGET];
+
+void free_problem(MY_PROBLEM* problem);
+void f1(const double *x, double *y, size_t dimension, double* optimal);
+void my_evaluate_func(const double *x, double *y, const char * function_name, size_t dimension, double * optimal);
+MY_PROBLEM* init_problem(coco_random_state_t *random_generator);
+void my_example_experiment(const char *file_name, coco_random_state_t *random_generator);
 
 //COCO_SETTINGS
 int instance_cnt = 0;
@@ -86,7 +101,6 @@ typedef struct {
 	time_t overall_start_time;
 } timing_data_t;
 
-//COCO prototype
 void example_experiment(const char *suite_name,
                         const char *suite_options,
                         const char *observer_name,
@@ -140,6 +154,16 @@ void de_nopcm(evaluate_function_t evaluate_func,
                     coco_random_state_t *random_generator,
                     char *titlestr);
 
+void my_de_nopcm(const char* function_name,
+                      const size_t dimension,
+                      const size_t number_of_objectives,
+                      const double *lower_bounds,
+                      const double *upper_bounds,
+                      const size_t max_budget,
+                      coco_random_state_t *random_generator,
+                      char *titlestr,
+                      MY_PROBLEM *problem);
+
 /**
  * The main method initializes the random number generator and calls the example experiment on the
  * bbob suite.
@@ -149,7 +173,12 @@ int main(void) {
   /* Change the log level to "warning" to get less output */
   coco_set_log_level("info");
 
-  printf("Running the example experiment... (might take time, be patient)\n");
+  if(PROBLEM_CLASS == 0){
+    printf("Running the example experiment... (might take time, be patient)\n");
+  }
+  else if(PROBLEM_CLASS == 1){
+    printf("Running the my example experiment... (might take time, be patient)\n");
+  }
   fflush(stdout);
 
   /**
@@ -258,6 +287,7 @@ int main(void) {
   return 0;
 }
 
+//EXAMPLE_EXPERIMENT
 /**
  * A simple example of benchmarking random search on a given suite with default instances
  * that can serve also as a timing experiment.
@@ -378,10 +408,6 @@ void example_experiment(const char *suite_name,
   coco_suite_free(suite);
 }
 
-void init_problem(MY_PROBLEM *my_problem){
-
-}
-
 /**
  * A simple example of benchmarking random search on a given suite with default instances
  * that can serve also as a timing experiment.
@@ -395,13 +421,25 @@ void init_problem(MY_PROBLEM *my_problem){
  */
 void my_example_experiment(const char *file_name,
                         coco_random_state_t *random_generator) {
-  MY_PROBLEM my_problem[NUMBER_OF_PROBLEM];
-  init_problem(my_problem);
+  printf("generating problem...\n");
+  MY_PROBLEM *my_problem = init_problem(random_generator);
+  printf("success generation\n");
+  // for(size_t i = 0; i < NUMBER_OF_PROBLEM; i++){
+  //   printf("%s:dimension%ld:instance%ld:range[0,%.0f]\n",my_problem[i].function_name, my_problem[i].dimension, my_problem[i].instance, my_problem[i].largest[0]);
+  //   printf("optimal solution:");
+  //   for(size_t j = 0; j < my_problem[i].dimension; j++){
+  //     printf("%lf ", my_problem[i].optimal[j]);
+  //   }
+  //   printf("\n");
+  //   printf("target hit result:\n");
+  //   for(size_t j = 0; j < NUMBER_OF_TARGET; j++){
+  //     printf("%.2e:%d\n", target[j], my_problem[i].evaluate_result[j]);
+  //   }
+  // }
   /* Iterate over all problems in the suite */
-  while ((PROBLEM = coco_suite_get_next_problem(suite, observer)) != NULL) {
-    const char *function_name = coco_problem_get_name(PROBLEM);
-    char *short_function_name = get_short_function_number(function_name);
-    size_t dimension = coco_problem_get_dimension(PROBLEM);
+  for(size_t i = 0; i < NUMBER_OF_PROBLEM; i++){
+    const char *function_name = my_problem[i].function_name;
+    size_t dimension = my_problem[i].dimension;
 
     //filename select
     char titlestr[128] = "./output/";
@@ -412,7 +450,7 @@ void my_example_experiment(const char *file_name,
     else if(ALGORITHM == 1){
       strcat(titlestr,"ga/");
     }
-    strcat(titlestr,short_function_name);
+    strcat(titlestr,function_name);
     sprintf(num, "/%ld", dimension);
     strcat(titlestr,num);
     if(ENCODING == 0){
@@ -445,51 +483,136 @@ void my_example_experiment(const char *file_name,
         strcat(titlestr,"d/U2-B-");
       }
     }
-    sprintf(num, "%d", instance_cnt);
+    sprintf(num, "%ld", my_problem[i].instance);
     strcat(titlestr,num);
     strcat(titlestr,".txt");
     /* Run the algorithm at least once */
-    for (run = 1; run <= 1 + INDEPENDENT_RESTARTS; run++) {
-      long evaluations_done = (long) (coco_problem_get_evaluations(PROBLEM) + coco_problem_get_evaluations_constraints(PROBLEM));
+    for (size_t run = 1; run <= 1 + INDEPENDENT_RESTARTS; run++) {
+      long evaluations_done = my_problem[i].evaluation_cnt;
       long evaluations_remaining = (long) (dimension * BUDGET_MULTIPLIER) - evaluations_done;
-
       /* Break the loop if the target was hit or there are no more remaining evaluations */
-      if ((coco_problem_final_target_hit(PROBLEM) && coco_problem_get_number_of_constraints(PROBLEM) == 0) || (evaluations_remaining <= 0))
+
+      if((evaluations_remaining <= 0)){
         break;
+      }
 
       /* Call the optimization algorithm for the remaining number of evaluations */
       if(ALGORITHM == 0){
-        de_nopcm(evaluate_function,
+        my_de_nopcm(function_name,
                         dimension,
-                        coco_problem_get_number_of_objectives(PROBLEM),
-                        coco_problem_get_smallest_values_of_interest(PROBLEM),
-                        coco_problem_get_largest_values_of_interest(PROBLEM),
+                        1,
+                        my_problem[i].smallest,
+                        my_problem[i].largest,
                         (size_t) evaluations_remaining,
                         random_generator,
-                        titlestr);
+                        titlestr,
+                        &my_problem[i]);
       }
       else if(ALGORITHM == 1){
 
       }
-
-      /* Break the loop if the algorithm performed no evaluations or an unexpected thing happened */
-      if (coco_problem_get_evaluations(PROBLEM) == evaluations_done) {
-        printf("WARNING: Budget has not been exhausted (%lu/%lu evaluations done)!\n",
-            (unsigned long) evaluations_done, (unsigned long) dimension * BUDGET_MULTIPLIER);
-        break;
-      }
-      else if (coco_problem_get_evaluations(PROBLEM) < evaluations_done)
-        coco_error("Something unexpected happened - function evaluations were decreased!");
     }
-    /* Keep track of time */
-    timing_data_time_problem(timing_data, PROBLEM);
+    // printf("%s:dimension%ld:instance%ld:range[0,%.0f]\n",my_problem[i].function_name, my_problem[i].dimension, my_problem[i].instance, my_problem[i].largest[0]);
+    // printf("optimal solution:");
+    // for(size_t j = 0; j < my_problem[i].dimension; j++){
+    //   printf("%lf ", my_problem[i].optimal[j]);
+    // }
+    // printf("\n");
+    // printf("target hit result:\n");
+    // for(size_t j = 0; j < NUMBER_OF_TARGET; j++){
+    //   printf("%.2e:%d\n", target[j], my_problem[i].evaluate_result[j]);
+    // }
+    // exit(1);
+  }
+  for (size_t i = 0; i < NUMBER_OF_PROBLEM; i++) {
+    free_problem(&my_problem[i]);
+  }
+  free(my_problem);  // 問題配列自体の解放
+}
+
+// MyCOCO
+void free_problem(MY_PROBLEM* problem) {
+    // function_name のメモリ解放
+    if (problem->function_name) {
+        free(problem->function_name);
+    }
+
+    // smallest 配列のメモリ解放
+    if (problem->smallest) {
+        free(problem->smallest);
+    }
+
+    // largest 配列のメモリ解放
+    if (problem->largest) {
+        free(problem->largest);
+    }
+
+    // optimal 配列のメモリ解放
+    if (problem->optimal) {
+        free(problem->optimal);
+    }
+}
+
+MY_PROBLEM* init_problem(coco_random_state_t *random_generator){
+  MY_PROBLEM* problems = (MY_PROBLEM*)malloc(NUMBER_OF_PROBLEM * sizeof(MY_PROBLEM));
+  if (!problems) {
+      fprintf(stderr, "Memory allocation failed for MY_PROBLEM.\n");
+      exit(EXIT_FAILURE);
   }
 
-  /* Output and finalize the timing data */
-  timing_data_finalize(timing_data);
+  // 各問題を初期化(sphere)
+  char *sphere = "f1";
+  size_t dimension[] = {5, 10, 20, 40, 80, 160};
+  double range[] = {1, 3, 7, 15, 31};
+  int problem_cnt = 0;
+  for(size_t range_cnt = 0; range_cnt < 5; range_cnt++){
+    for(size_t dimension_cnt = 0; dimension_cnt < 6; dimension_cnt++){
+      for (size_t instance_count = 0; instance_count < 15; instance_count++){
+        problems[problem_cnt].function_name = (char*)malloc(strlen(sphere) + 1);
+        if (!problems[problem_cnt].function_name) {
+            fprintf(stderr, "Memory allocation failed for function_name.\n");
+            exit(EXIT_FAILURE);
+        }
+        strcpy(problems[problem_cnt].function_name, sphere);
 
-  coco_observer_free(observer);
-  coco_suite_free(suite);
+        problems[problem_cnt].dimension = dimension[dimension_cnt];
+        problems[problem_cnt].instance = instance_count;
+        problems[problem_cnt].evaluation_cnt = 0;
+        problems[problem_cnt].end_flag = 0;
+        for(size_t i = 0; i < NUMBER_OF_TARGET; i++){
+          problems[problem_cnt].evaluate_result[i] = -1;
+        }
+        // optimalとsmallest と largest のメモリを確保
+        problems[problem_cnt].smallest = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
+        problems[problem_cnt].largest = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
+        problems[problem_cnt].optimal = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
+        
+        if (!problems[problem_cnt].smallest || !problems[problem_cnt].largest) {
+          fprintf(stderr, "Memory allocation failed for arrays.\n");
+          exit(EXIT_FAILURE);
+        }
+
+        // 配列を初期化
+        for (size_t j = 0; j < dimension[dimension_cnt]*4/5; j++) {
+          problems[problem_cnt].smallest[j] = 0;
+          problems[problem_cnt].largest[j] = range[range_cnt];
+          problems[problem_cnt].optimal[j] = (int)(coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j] + 1) + problems[problem_cnt].smallest[j]);
+        }
+        for (size_t j = dimension[dimension_cnt]*4/5; j < dimension[dimension_cnt]; j++) {
+          problems[problem_cnt].smallest[j] = -5;
+          problems[problem_cnt].largest[j] = 5;
+          problems[problem_cnt].optimal[j] = problems[problem_cnt].smallest[j] + coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j]);
+        }
+
+        problem_cnt++;
+      }
+    }
+  }
+  for(int target_cnt = 0; target_cnt < NUMBER_OF_TARGET; target_cnt++){
+    target[target_cnt] = pow(10, (2 - target_cnt/5));
+  }
+
+  return problems;
 }
 
 //EA_DEFAULT_PARTS
@@ -785,20 +908,7 @@ char *get_short_function_number(const char *problem_name) {
     return short_name;
 }
 
-/**
- * A random search algorithm that can be used for single- as well as multi-objective optimization. The
- * problem's initial solution is evaluated first.
- *
- * @param evaluate_func The function used to evaluate the objective function.
- * @param dimension The number of variables.
- * @param number_of_objectives The number of objectives.
- * @param lower_bounds The lower bounds of the region of interested (a vector containing dimension values).
- * @param upper_bounds The upper bounds of the region of interested (a vector containing dimension values).
- * @param max_budget The maximal number of evaluations.
- * @param random_generator Pointer to a random number generator able to produce uniformly and normally
- * distributed random numbers.
- * @param titlestr The filename for analysis GA group per generations.
- */
+//EA algorithm
 void de_nopcm(evaluate_function_t evaluate_func,
                       const size_t dimension,
                       const size_t number_of_objectives,
@@ -947,4 +1057,221 @@ void de_nopcm(evaluate_function_t evaluate_func,
   coco_free_memory(rnd_vals);
   coco_free_memory(sum);
   coco_free_memory(sum2);
+}
+
+int find_min_index(double value_population[]) {
+  int min_index = 0;  // 最初の要素を最小値と仮定
+  for (int i = 1; i < DE_N; i++) {
+      if (value_population[i] < value_population[min_index]) {
+          min_index = i;  // 最小値を更新
+      }
+  }
+  return min_index;
+}
+
+void my_de_nopcm(const char* function_name,
+                      const size_t dimension,
+                      const size_t number_of_objectives,
+                      const double *lower_bounds,
+                      const double *upper_bounds,
+                      const size_t max_budget,
+                      coco_random_state_t *random_generator,
+                      char *titlestr,
+                      MY_PROBLEM *problem){
+  double **population = (double**)malloc(DE_N * sizeof(double*));
+  double *functions_values = coco_allocate_vector(number_of_objectives);
+  double **trial = (double**)malloc(DE_N * sizeof(double*));
+  double *mutate = coco_allocate_vector(dimension);
+  double **tmp = (double**)malloc(DE_N * sizeof(double*));
+  double *rnd_vals = coco_allocate_vector(dimension);
+  int evaluation = 0;
+  size_t i, j;
+  int vector[3];
+  int min_pos = 0;
+  double value_population[DE_N];
+  double value_trial[DE_N];
+  FILE *fp;
+  double *sum = coco_allocate_vector(dimension); 
+  double *sum2 = coco_allocate_vector(dimension); 
+  int output_cnt = 0;
+  fp = fopen(titlestr, "w");
+
+  for (i = 0; i < DE_N; i++) {
+        population[i] = coco_allocate_vector(dimension);
+        trial[i] = coco_allocate_vector(dimension);
+        tmp[i] = coco_allocate_vector(dimension);
+        if (population[i] == NULL) {
+            printf("メモリの確保に失敗しました。\n");
+        }
+  }
+  //initialization
+  ea_group_initialization(population, dimension, lower_bounds, upper_bounds, random_generator);
+  //encoding
+  ea_group_encoding(population, tmp, dimension, lower_bounds, upper_bounds);
+  //evaluation
+  for (i = 0; i < DE_N; i++) {
+    my_evaluate_func(tmp[i], functions_values, function_name, dimension, problem->optimal);
+    evaluation++;
+    value_population[i] = functions_values[0];
+  }
+  min_pos =  find_min_index(value_population);
+  for(size_t target_cnt = 0; target_cnt < NUMBER_OF_TARGET; target_cnt++){
+    if(target[target_cnt] > value_population[min_pos]){
+      if(problem->evaluate_result[target_cnt] == -1){
+        problem->evaluate_result[target_cnt] = evaluation;
+      }
+      else if(problem->evaluate_result[target_cnt] > evaluation){
+        problem->evaluate_result[target_cnt] = evaluation;
+      }
+    }
+  }
+  //hanpuku
+  while(evaluation  < max_budget){
+    //hyoujyunhensa+output
+    if(output_cnt == 0){
+      ea_sd_calc(sum, sum2, tmp, dimension, fp);
+    }
+    output_cnt++;
+    if(output_cnt == dimension){
+      output_cnt = 0;
+    }
+
+    for (i = 0; i < DE_N; i++) {
+      //selection
+      vector[0] = (int)(coco_random_uniform(random_generator)*DE_N);
+      do {
+          vector[1] = (int)(coco_random_uniform(random_generator)*DE_N);
+      } while (vector[1] == vector[0]);
+
+      do {
+          vector[2] = (int)(coco_random_uniform(random_generator)*DE_N);
+      } while (vector[2] == vector[0] || vector[2] == vector[1]);
+      //mutation
+      for (j = 0; j < dimension; j++) {
+        mutate[j] = population[vector[0]][j] + DE_F * (population[vector[1]][j] - population[vector[2]][j]);
+        if(ENCODING== 0){
+          if (mutate[j] < lower_bounds[j]){
+            mutate[j] = (lower_bounds[j] + population[i][j]) / 2.0;
+          }
+          else if(mutate[j] > upper_bounds[j]){
+            mutate[j] = (upper_bounds[j] + population[i][j]) / 2.0;
+          }
+        }
+        else if(ENCODING == 1){
+          if (mutate[j] < 0){
+            mutate[j] = (population[i][j]) / 2.0;
+          }
+          else if(mutate[j] > 1){
+            mutate[j] = (1 + population[i][j]) / 2.0;
+          }
+        }
+        else if(ENCODING == 2){
+          if (mutate[j] < lower_bounds[j] - 0.5){
+            mutate[j] = (lower_bounds[j] - 0.5 + population[i][j]) / 2.0;
+          }
+          else if(mutate[j] > upper_bounds[j] + 0.5 - FLT_EPSILON){
+            mutate[j] = (upper_bounds[j] + 0.5 - FLT_EPSILON + population[i][j]) / 2.0;
+          }
+        }
+      }
+      //crossover
+      int j_rand = (int)(coco_random_uniform(random_generator)*(int)dimension);
+
+      // Generate random values between 0 and 1
+      for (j = 0; j < dimension; j++) {
+          rnd_vals[j] = coco_random_uniform(random_generator);
+      }
+      // Set rnd_vals[j_rand] to 0.0
+      rnd_vals[j_rand] = 0.0;
+      // Perform binomial crossover
+      for (j = 0; j < dimension; j++) {
+          if (rnd_vals[j] <= DE_CR) {
+              trial[i][j] = mutate[j];
+          } else {
+              trial[i][j] = population[i][j];
+          }
+      }
+    }
+    //encoding
+    ea_group_encoding(trial, tmp, dimension, lower_bounds, upper_bounds);
+    //evaluation
+    for (i = 0; i < DE_N; i++) {
+      my_evaluate_func(tmp[i], functions_values, function_name, dimension, problem->optimal);
+      evaluation++;
+      value_trial[i] = functions_values[0];
+    }
+
+    min_pos =  find_min_index(value_trial);
+    for(size_t target_cnt = 0; target_cnt < NUMBER_OF_TARGET; target_cnt++){
+      if(target[target_cnt] > value_trial[min_pos]){
+        if(problem->evaluate_result[target_cnt] == -1){
+          problem->evaluate_result[target_cnt] = evaluation;
+        }
+        else{
+          if(problem->evaluate_result[target_cnt] > evaluation){
+            problem->evaluate_result[target_cnt] = evaluation;
+          }
+        }
+        if(target_cnt == NUMBER_OF_TARGET - 1){
+          problem->end_flag = 1;
+        }
+      }
+    }
+
+    //enviroment selection
+    for(i = 0; i < DE_N; i++){
+      if(value_trial[i] <= value_population[i]){
+        for (j = 0; j < dimension; j++) {
+          population[i][j] = trial[i][j];
+        }
+        value_population[i] = value_trial[i];
+      }
+    }
+    // for(i = 0; i < DE_N; i++){
+    //   for(j = 0; j < dimension; j++){
+    //     printf("%.30lf ", population[i][j]);
+    //   }
+    //   printf("\n");
+    // }
+    // printf("%d\n", evaluation);
+
+    if(problem->end_flag == 1){
+      break;
+    }
+  }
+  // printf("best_solution:");
+  // for( i = 0; i < dimension; i++){
+  //   printf("%lf ", population[min_pos][i]);
+  // }
+  // printf("\n");
+  problem->end_flag = 0;
+  problem->evaluation_cnt += evaluation;
+  fclose(fp);
+  //memory free
+  for (i = 0; i < DE_N; ++i) {
+    coco_free_memory(population[i]);
+    coco_free_memory(trial[i]);
+    coco_free_memory(tmp[i]);
+  }
+  free(population);
+  coco_free_memory(functions_values);
+  coco_free_memory(mutate);
+  coco_free_memory(tmp);
+  coco_free_memory(rnd_vals);
+  coco_free_memory(sum);
+  coco_free_memory(sum2);
+}
+
+//MY_EVALUATE_FUNC
+void f1(const double *x, double *y, size_t dimension, double* optimal) {//sphere
+  y[0] = 0;
+  for(size_t i = 0; i < dimension; i++){
+    y[0] += fabs(optimal[i] - x[i])*fabs(optimal[i] - x[i]);
+  }
+}
+
+void my_evaluate_func(const double *x, double *y, const char * function_name, size_t dimension, double * optimal) {
+  if(strcmp(function_name, "f1") == 0){
+    f1(x, y, dimension, optimal);
+  }
 }
