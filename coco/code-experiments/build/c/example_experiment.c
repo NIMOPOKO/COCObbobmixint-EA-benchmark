@@ -1178,7 +1178,7 @@ void my_de_nopcm(const char* function_name,
       //crossover
       int j_rand = (int)(coco_random_uniform(random_generator)*(int)dimension);
 
-      // Generate random values between 0 and 1
+      // Generate random values between 0 and 1.
       for (j = 0; j < dimension; j++) {
           rnd_vals[j] = coco_random_uniform(random_generator);
       }
