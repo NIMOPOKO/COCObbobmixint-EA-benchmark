@@ -1140,14 +1140,14 @@ void my_de_nopcm(const char* function_name,
       }
     }
   }
-  x_tmp = (int)(problem->dimension*pow(10,x));
+  x_tmp = problem->dimension*pow(10,x);
   //hanpuku
   while(evaluation  < max_budget){
     while(1){
-      if(evaluation > x_tmp ){
-        fprintf(fp,"%lf %d\n", x_tmp, number_of_target);
+      if(evaluation >= x_tmp ){
+        fprintf(fp,"%lf %d\n", x, number_of_target);
         x += 0.25;
-        x_tmp = (int)(problem->dimension*pow(10,x));
+        x_tmp =　problem->dimension*pow(10,x);
       }
       else{
         break;
