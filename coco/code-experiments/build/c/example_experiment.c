@@ -36,6 +36,7 @@ typedef struct my_problem{
   double *smallest; //[0,1],[0,3],[0,7],[0,15],[0,31]
   double *largest;
   double *optimal;
+  double *best_solution;
   int evaluate_result[NUMBER_OF_TARGET];
   size_t dimension;
   int evaluation_cnt;
@@ -513,17 +514,21 @@ void my_example_experiment(const char *file_name,
 
       }
     }
-    // printf("%s:dimension%ld:instance%ld:range[0,%.0f]\n",my_problem[i].function_name, my_problem[i].dimension, my_problem[i].instance, my_problem[i].largest[0]);
-    // printf("optimal solution:");
-    // for(size_t j = 0; j < my_problem[i].dimension; j++){
-    //   printf("%lf ", my_problem[i].optimal[j]);
-    // }
-    // printf("\n");
+    printf("%s:dimension%ld:instance%ld:range[0,%.0f]\n",my_problem[i].function_name, my_problem[i].dimension, my_problem[i].instance, my_problem[i].largest[0]);
+    printf("optimal solution:");
+    for(size_t j = 0; j < my_problem[i].dimension; j++){
+      printf("%lf ", my_problem[i].optimal[j]);
+    }
+    printf("\n");
+    printf("best solution   :");
+    for(size_t j = 0; j < my_problem[i].dimension; j++){
+      printf("%lf ", my_problem[i].best_solution[j]);
+    }
+    printf("\n");
     // printf("target hit result:\n");
     // for(size_t j = 0; j < NUMBER_OF_TARGET; j++){
     //   printf("%.2e:%d\n", target[j], my_problem[i].evaluate_result[j]);
     // }
-    // exit(1);
   }
   for (size_t i = 0; i < NUMBER_OF_PROBLEM; i++) {
     free_problem(&my_problem[i]);
@@ -551,6 +556,11 @@ void free_problem(MY_PROBLEM* problem) {
     // optimal 配列のメモリ解放
     if (problem->optimal) {
         free(problem->optimal);
+    }
+
+    // best_solution 配列のメモリ解放
+    if (problem->best_solution) {
+        free(problem->best_solution);
     }
 }
 
@@ -587,6 +597,7 @@ MY_PROBLEM* init_problem(coco_random_state_t *random_generator){
         problems[problem_cnt].smallest = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
         problems[problem_cnt].largest = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
         problems[problem_cnt].optimal = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
+        problems[problem_cnt].best_solution = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
         
         if (!problems[problem_cnt].smallest || !problems[problem_cnt].largest) {
           fprintf(stderr, "Memory allocation failed for arrays.\n");
@@ -1096,7 +1107,9 @@ void my_de_nopcm(const char* function_name,
   double *sum2 = coco_allocate_vector(dimension); 
   int output_cnt = 0;
   fp = fopen(titlestr, "w");
-
+  double x = 0;
+  double x_tmp = 0;
+  int number_of_target = 0;
   for (i = 0; i < DE_N; i++) {
         population[i] = coco_allocate_vector(dimension);
         trial[i] = coco_allocate_vector(dimension);
@@ -1120,17 +1133,34 @@ void my_de_nopcm(const char* function_name,
     if(target[target_cnt] > value_population[min_pos]){
       if(problem->evaluate_result[target_cnt] == -1){
         problem->evaluate_result[target_cnt] = evaluation;
+        number_of_target++; 
       }
       else if(problem->evaluate_result[target_cnt] > evaluation){
         problem->evaluate_result[target_cnt] = evaluation;
       }
     }
   }
+  x_tmp = (int)(problem->dimension*pow(10,x));
   //hanpuku
   while(evaluation  < max_budget){
+    while(1){
+      if(evaluation > x_tmp ){
+        fprintf(fp,"%lf %d\n", x_tmp, number_of_target);
+        x += 0.25;
+        x_tmp = (int)(problem->dimension*pow(10,x));
+      }
+      else{
+        break;
+      }
+    }
+
+    if(problem->end_flag == 1){
+      break;
+    }
+
     //hyoujyunhensa+output
     if(output_cnt == 0){
-      ea_sd_calc(sum, sum2, tmp, dimension, fp);
+      //ea_sd_calc(sum, sum2, tmp, dimension, fp);
     }
     output_cnt++;
     if(output_cnt == dimension){
@@ -1200,23 +1230,7 @@ void my_de_nopcm(const char* function_name,
       my_evaluate_func(tmp[i], functions_values, function_name, dimension, problem->optimal);
       evaluation++;
       value_trial[i] = functions_values[0];
-    }
-
-    min_pos =  find_min_index(value_trial);
-    for(size_t target_cnt = 0; target_cnt < NUMBER_OF_TARGET; target_cnt++){
-      if(target[target_cnt] > value_trial[min_pos]){
-        if(problem->evaluate_result[target_cnt] == -1){
-          problem->evaluate_result[target_cnt] = evaluation;
-        }
-        else{
-          if(problem->evaluate_result[target_cnt] > evaluation){
-            problem->evaluate_result[target_cnt] = evaluation;
-          }
-        }
-        if(target_cnt == NUMBER_OF_TARGET - 1){
-          problem->end_flag = 1;
-        }
-      }
+      number_of_target++;
     }
 
     //enviroment selection
@@ -1228,6 +1242,24 @@ void my_de_nopcm(const char* function_name,
         value_population[i] = value_trial[i];
       }
     }
+
+    min_pos =  find_min_index(value_population);
+    for(size_t target_cnt = 0; target_cnt < NUMBER_OF_TARGET; target_cnt++){
+      if(target[target_cnt] > value_population[min_pos]){
+        if(problem->evaluate_result[target_cnt] == -1){
+          problem->evaluate_result[target_cnt] = evaluation;
+          number_of_target++;
+        }
+        else{
+          if(problem->evaluate_result[target_cnt] > evaluation){
+            problem->evaluate_result[target_cnt] = evaluation;
+          }
+        }
+        if(target_cnt == NUMBER_OF_TARGET - 1){
+          problem->end_flag = 1;
+        }
+      }
+    }
     // for(i = 0; i < DE_N; i++){
     //   for(j = 0; j < dimension; j++){
     //     printf("%.30lf ", population[i][j]);
@@ -1235,16 +1267,13 @@ void my_de_nopcm(const char* function_name,
     //   printf("\n");
     // }
     // printf("%d\n", evaluation);
-
-    if(problem->end_flag == 1){
-      break;
-    }
   }
   // printf("best_solution:");
-  // for( i = 0; i < dimension; i++){
-  //   printf("%lf ", population[min_pos][i]);
-  // }
-  // printf("\n");
+  for( i = 0; i < dimension; i++){
+    problem->best_solution[i] = population[min_pos][i];
+  }
+
+  
   problem->end_flag = 0;
   problem->evaluation_cnt += evaluation;
   fclose(fp);
