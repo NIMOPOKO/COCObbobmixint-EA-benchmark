@@ -75,6 +75,6 @@ def process_and_plot(directory, groups):
     print(f"比較グラフを保存しました: {output_graph_path}")
 
 # 使用例
-directory = "/home/nimo/de2/coco/code-experiments/build/c/output/de/f1/5d"
-groups = ["L", "U-Lf", "U-Lm", "U-Lb", "U2-L"]
+directory = "/home/nimo/de2/coco/code-experiments/build/c/output/de/f1/10d"
+groups = ["L","U-Lb", "U2-L"]
 process_and_plot(directory, groups)

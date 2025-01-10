@@ -455,7 +455,9 @@ void my_example_experiment(const char *file_name,
       strcat(titlestr,"ga/");
     }
     strcat(titlestr,function_name);
-    sprintf(num, "/%ld", dimension);
+    sprintf(num, "/%d/", (int)my_problem[i].largest[0]);
+    strcat(titlestr,num);
+    sprintf(num, "%ld", dimension);
     strcat(titlestr,num);
     if(ENCODING == 0){
       if(APPROACH == 0){
@@ -494,6 +496,9 @@ void my_example_experiment(const char *file_name,
     for (size_t run = 1; run <= 1 + INDEPENDENT_RESTARTS; run++) {
       long evaluations_done = my_problem[i].evaluation_cnt;
       long evaluations_remaining = (long) (dimension * BUDGET_MULTIPLIER) - evaluations_done;
+      // if(my_problem[i].dimension != 160 || my_problem[i].largest[0] != 3){
+      //   break;
+      // }
       /* Break the loop if the target was hit or there are no more remaining evaluations */
 
       if((evaluations_remaining <= 0)){
@@ -517,22 +522,22 @@ void my_example_experiment(const char *file_name,
       }
     }
 
-    printf("%s:dimension%ld:instance%ld:range[0,%.0f]\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0]);
-    printf("optimal solution:");
-    for(size_t j = 0; j < dimension; j++){
-      printf("%lf ", my_problem[i].optimal[j]);
-    }
-    printf("\n");
+    // printf("%s:dimension%ld:instance%ld:range[0,%.0f]\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0]);
+    // printf("optimal solution:");
+    // for(size_t j = 0; j < dimension; j++){
+    //   printf("%lf ", my_problem[i].optimal[j]);
+    // }
+    // printf("\n");
 
-    if(ENCODING == 1){
-      decoding_vec(my_problem[i].best_solution, dimension, my_problem[i].largest);
-    }
+    // if(ENCODING == 1 && APPROACH != 3){
+    //   decoding_vec(my_problem[i].best_solution, dimension, my_problem[i].largest);
+    // }
 
-    printf("best solution   :");
-    for(size_t j = 0; j < dimension; j++){
-      printf("%lf ", my_problem[i].best_solution[j]);
-    }
-    printf("\n");
+    // printf("best solution   :");
+    // for(size_t j = 0; j < dimension; j++){
+    //   printf("%lf ", my_problem[i].best_solution[j]);
+    // }
+    // printf("\n");
 
     // printf("target hit result:\n");
     // for(size_t j = 0; j < NUMBER_OF_TARGET; j++){
@@ -545,7 +550,7 @@ void my_example_experiment(const char *file_name,
         break;
       }
       for(int k = 0; k < NUMBER_OF_TARGET; k++){
-        if((double)dimension*pow(10, amount) >= (double)my_problem[i].evaluate_result[k]){
+        if(((double)dimension*pow(10, amount) >= (double)(double)my_problem[i].evaluate_result[k] ) && (my_problem[i].evaluate_result[k] != -1)){
           target_count++;
         }
         else{
@@ -1292,7 +1297,7 @@ void my_de_nopcm(const char* function_name,
   my_evaluate_func(population[min_pos], tmp_functions_values, function_name, dimension, problem->optimal);
   // printf("best_solution:");
   if(functions_values[0] > tmp_functions_values[0]){
-    for( i = 0; i < dimension; i++){
+    for(i = 0; i < dimension; i++){
       problem->best_solution[i] = population[min_pos][i];
     }
   }
