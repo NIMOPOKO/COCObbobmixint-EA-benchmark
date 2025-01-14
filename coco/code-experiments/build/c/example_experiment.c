@@ -496,12 +496,13 @@ void my_example_experiment(const char *file_name,
     for (size_t run = 1; run <= 1 + INDEPENDENT_RESTARTS; run++) {
       long evaluations_done = my_problem[i].evaluation_cnt;
       long evaluations_remaining = (long) (dimension * BUDGET_MULTIPLIER) - evaluations_done;
-      // if(my_problem[i].dimension != 160 || my_problem[i].largest[0] != 3){
-      //   break;
-      // }
       /* Break the loop if the target was hit or there are no more remaining evaluations */
 
       if((evaluations_remaining <= 0)){
+        break;
+      }
+      
+      if(my_problem[i].dimension != 5 && my_problem[i].dimension != 10 && my_problem[i].dimension != 20){
         break;
       }
 
@@ -522,7 +523,7 @@ void my_example_experiment(const char *file_name,
       }
     }
 
-    // printf("%s:dimension%ld:instance%ld:range[0,%.0f]\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0]);
+    printf("%s:dimension%ld:instance%ld:range[0,%.0f]\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0]);
     // printf("optimal solution:");
     // for(size_t j = 0; j < dimension; j++){
     //   printf("%lf ", my_problem[i].optimal[j]);
@@ -705,7 +706,6 @@ void ea_group_encoding(double** x, double** tmp, size_t dimension, const double*
         for(int j = 0; j < dimension; j++){
           tmp[i][j] = x[i][j];
         }
-
       }
       else if(APPROACH == 1){
         round_vec(tmp[i],dimension,lower_bounds,upper_bounds);
@@ -727,7 +727,7 @@ void ea_group_encoding(double** x, double** tmp, size_t dimension, const double*
 }
 
 void round_vec(double *x, size_t dimention_size, const double *lower_bounds, const double *upper_bounds){
-  double y[16] = {0};
+  double y[40] = {0};
   double y_star;
   double min_dist = 0;
   for(int i = 0; i < dimention_size; i++){
@@ -757,7 +757,7 @@ void round_vec(double *x, size_t dimention_size, const double *lower_bounds, con
 }
 
 void new_round_vec(double *x, size_t dimention_size, const double *upper_bounds){
-  double y[17]= {0};
+  double y[40]= {0};
 
   for(int i = 0; i < dimention_size; i++){
     if(upper_bounds[i] != 5){
@@ -1155,6 +1155,14 @@ void my_de_nopcm(const char* function_name,
   }
   //initialization
   ea_group_initialization(population, dimension, lower_bounds, upper_bounds, random_generator);
+  
+  // for(i = 0; i < DE_N; i++){
+  //   for(j = 0; j < dimension; j++){
+  //     printf("%.30lf ", population[i][j]);
+  //   }
+  //   printf("\n");
+  // }
+  
   //encoding
   ea_group_encoding(population, tmp, dimension, lower_bounds, upper_bounds);
   //evaluation
