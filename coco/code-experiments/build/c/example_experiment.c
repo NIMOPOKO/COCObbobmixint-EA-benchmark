@@ -16,7 +16,7 @@
 
 //BENCHMARKING_SETTING
 #define PROBLEM_CLASS 1 //0:coco, 1:my_class
-
+#define M_PI	3.141592653589793238462643
 //EA_SETTINGS
 // #define ALGORITHM 0 //0:de,1:ga
 // #define ENCODING 0 //0:basic encoding[0,l], 1:new encoding[0,1], 2:basic2 encoding[0-0.5,l+0.49999]
@@ -28,13 +28,14 @@
 #define DE_F 0.5
 
 //MY_COCO_SETTINGS
-#define NUMBER_OF_PROBLEM 450
+#define NUMBER_OF_PROBLEM 4320
 #define NUMBER_OF_TARGET 51
 
 typedef struct my_problem{
   char* function_name;
   double *smallest; //[0,1],[0,3],[0,7],[0,15],[0,31]
   double *largest;
+  size_t r;
   double *optimal;
   double *best_solution;
   int evaluate_result[NUMBER_OF_TARGET];
@@ -48,6 +49,8 @@ double target[NUMBER_OF_TARGET];
 
 void free_problem(MY_PROBLEM* problem);
 void f1(const double *x, double *y, size_t dimension, double* optimal);
+void f8(const double *x, double *y, size_t dimension, double* optimal);
+void f15(const double *x, double *y, size_t dimension, double* optimal);
 void my_evaluate_func(const double *x, double *y, const char * function_name, size_t dimension, double * optimal);
 MY_PROBLEM* init_problem(coco_random_state_t *random_generator);
 void my_example_experiment(const char *file_name, coco_random_state_t *random_generator);
@@ -134,10 +137,12 @@ void round_vec(double *x,
 
 void new_round_vec(double *x,
                    size_t dimention_size,
+                   const double *lower_bounds,
                    const double *upper_bounds);
 
 void decoding_vec(double *population,
                   size_t dimention_size,
+                  const double *lower_bounds,
                   const double *upper_bounds);
 
 void ea_sd_calc(double* sum,
@@ -455,6 +460,8 @@ void my_example_experiment(const char *file_name,
       strcat(titlestr,"ga/");
     }
     strcat(titlestr,function_name);
+    sprintf(num, "/%d", (int)my_problem[i].r);
+    strcat(titlestr,num);
     sprintf(num, "/%d/", (int)my_problem[i].largest[0]);
     strcat(titlestr,num);
     sprintf(num, "%ld", dimension);
@@ -492,6 +499,7 @@ void my_example_experiment(const char *file_name,
     sprintf(num, "%ld", my_problem[i].instance);
     strcat(titlestr,num);
     strcat(titlestr,".txt");
+    // printf("%s\n",titlestr);
     /* Run the algorithm at least once */
     for (size_t run = 1; run <= 1 + INDEPENDENT_RESTARTS; run++) {
       long evaluations_done = my_problem[i].evaluation_cnt;
@@ -502,9 +510,9 @@ void my_example_experiment(const char *file_name,
         break;
       }
       
-      if(my_problem[i].dimension != 5 && my_problem[i].dimension != 10 && my_problem[i].dimension != 20){
-        break;
-      }
+      // if(my_problem[i].dimension != 5 && my_problem[i].dimension != 10 && my_problem[i].dimension != 20){
+      //   break;
+      // }
 
       /* Call the optimization algorithm for the remaining number of evaluations */
       if(ALGORITHM == 0){
@@ -522,24 +530,24 @@ void my_example_experiment(const char *file_name,
 
       }
     }
+    // if(my_problem[i].dimension == 5 || my_problem[i].dimension == 10 || my_problem[i].dimension == 20){
+    //printf("%s:dimension%ld:instance%ld:range[0,%.0f]:integer ratio%ld/5\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0], my_problem[i].r);
+    //   printf("optimal solution:");
+    //   for(size_t j = 0; j < dimension; j++){
+    //     printf("%lf ", my_problem[i].optimal[j]);
+    //   }
+    //   printf("\n");
 
-    printf("%s:dimension%ld:instance%ld:range[0,%.0f]\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0]);
-    // printf("optimal solution:");
-    // for(size_t j = 0; j < dimension; j++){
-    //   printf("%lf ", my_problem[i].optimal[j]);
+    //   // if(ENCODING == 1 && APPROACH != 3){
+    //   //   decoding_vec(my_problem[i].best_solution, dimension, my_problem[i].largest);
+    //   // }
+
+    //   printf("best solution   :");
+    //   for(size_t j = 0; j < dimension; j++){
+    //     printf("%lf ", my_problem[i].best_solution[j]);
+    //   }
+    //   printf("\n");
     // }
-    // printf("\n");
-
-    // if(ENCODING == 1 && APPROACH != 3){
-    //   decoding_vec(my_problem[i].best_solution, dimension, my_problem[i].largest);
-    // }
-
-    // printf("best solution   :");
-    // for(size_t j = 0; j < dimension; j++){
-    //   printf("%lf ", my_problem[i].best_solution[j]);
-    // }
-    // printf("\n");
-
     // printf("target hit result:\n");
     // for(size_t j = 0; j < NUMBER_OF_TARGET; j++){
     //   printf("%.2e:%d\n", target[j], my_problem[i].evaluate_result[j]);
@@ -605,55 +613,60 @@ MY_PROBLEM* init_problem(coco_random_state_t *random_generator){
       exit(EXIT_FAILURE);
   }
 
-  // 各問題を初期化(sphere)
-  char *sphere = "f1";
+  // 各問題を初期化(func)
+  char *function[] = {"f1", "f8", "f15"};
   size_t dimension[] = {5, 10, 20, 40, 80, 160};
-  double range[] = {1, 3, 7, 15, 31};
+  double range[] = {2, 3, 4, 5};
   int problem_cnt = 0;
   double amount = -2;
-  for(size_t range_cnt = 0; range_cnt < 5; range_cnt++){
-    for(size_t dimension_cnt = 0; dimension_cnt < 6; dimension_cnt++){
-      for (size_t instance_count = 0; instance_count < 15; instance_count++){
-        problems[problem_cnt].function_name = (char*)malloc(strlen(sphere) + 1);
-        if (!problems[problem_cnt].function_name) {
-            fprintf(stderr, "Memory allocation failed for function_name.\n");
-            exit(EXIT_FAILURE);
-        }
-        strcpy(problems[problem_cnt].function_name, sphere);
+  for(size_t func_cnt = 0; func_cnt < 3; func_cnt++){
+    for(size_t r_cnt = 1; r_cnt <= 4; r_cnt++){
+      for(size_t range_cnt = 0; range_cnt < sizeof(range) / sizeof(range[0]); range_cnt++){
+        for(size_t dimension_cnt = 0; dimension_cnt < 6; dimension_cnt++){
+          for (size_t instance_count = 0; instance_count < 15; instance_count++){
+            problems[problem_cnt].function_name = (char*)malloc(strlen(function[func_cnt]) + 1);
+            if (!problems[problem_cnt].function_name) {
+                fprintf(stderr, "Memory allocation failed for function_name.\n");
+                exit(EXIT_FAILURE);
+            }
+            strcpy(problems[problem_cnt].function_name, function[func_cnt]);
 
-        problems[problem_cnt].dimension = dimension[dimension_cnt];
-        problems[problem_cnt].instance = instance_count;
-        problems[problem_cnt].evaluation_cnt = 0;
-        problems[problem_cnt].end_flag = 0;
-        for(size_t i = 0; i < NUMBER_OF_TARGET; i++){
-          problems[problem_cnt].evaluate_result[i] = -1;
-        }
-        // optimalとsmallest と largest のメモリを確保
-        problems[problem_cnt].smallest = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
-        problems[problem_cnt].largest = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
-        problems[problem_cnt].optimal = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
-        problems[problem_cnt].best_solution = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
-        
-        if (!problems[problem_cnt].smallest || !problems[problem_cnt].largest) {
-          fprintf(stderr, "Memory allocation failed for arrays.\n");
-          exit(EXIT_FAILURE);
-        }
-        for(size_t i = 0; i < dimension[dimension_cnt]; i++){
-          problems[problem_cnt].best_solution[i] = 100;
-        }
-        // 配列を初期化
-        for (size_t j = 0; j < dimension[dimension_cnt]*4/5; j++) {
-          problems[problem_cnt].smallest[j] = 0;
-          problems[problem_cnt].largest[j] = range[range_cnt];
-          problems[problem_cnt].optimal[j] = (int)(coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j] + 1) + problems[problem_cnt].smallest[j]);
-        }
-        for (size_t j = dimension[dimension_cnt]*4/5; j < dimension[dimension_cnt]; j++) {
-          problems[problem_cnt].smallest[j] = -5;
-          problems[problem_cnt].largest[j] = 5;
-          problems[problem_cnt].optimal[j] = problems[problem_cnt].smallest[j] + coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j]);
-        }
+            problems[problem_cnt].dimension = dimension[dimension_cnt];
+            problems[problem_cnt].instance = instance_count;
+            problems[problem_cnt].evaluation_cnt = 0;
+            problems[problem_cnt].end_flag = 0;
+            problems[problem_cnt].r = r_cnt;
+            for(size_t i = 0; i < NUMBER_OF_TARGET; i++){
+              problems[problem_cnt].evaluate_result[i] = -1;
+            }
+            // optimalとsmallest と largest のメモリを確保
+            problems[problem_cnt].smallest = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
+            problems[problem_cnt].largest = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
+            problems[problem_cnt].optimal = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
+            problems[problem_cnt].best_solution = (double*)malloc(dimension[dimension_cnt] * sizeof(double));
+            
+            if (!problems[problem_cnt].smallest || !problems[problem_cnt].largest) {
+              fprintf(stderr, "Memory allocation failed for arrays.\n");
+              exit(EXIT_FAILURE);
+            }
+            for(size_t i = 0; i < dimension[dimension_cnt]; i++){
+              problems[problem_cnt].best_solution[i] = 100;
+            }
+            // 配列を初期化
+            for (size_t j = 0; j < dimension[dimension_cnt]*r_cnt/5; j++) {
+              problems[problem_cnt].smallest[j] = 0;
+              problems[problem_cnt].largest[j] = range[range_cnt];
+              problems[problem_cnt].optimal[j] = (int)(coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j] + 1) + problems[problem_cnt].smallest[j]);
+            }
+            for (size_t j = dimension[dimension_cnt]*r_cnt/5; j < dimension[dimension_cnt]; j++) {
+              problems[problem_cnt].smallest[j] = -5;
+              problems[problem_cnt].largest[j] = 5;
+              problems[problem_cnt].optimal[j] = problems[problem_cnt].smallest[j] + coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j]);
+            }
 
-        problem_cnt++;
+            problem_cnt++;
+          }
+        }
       }
     }
   }
@@ -713,14 +726,14 @@ void ea_group_encoding(double** x, double** tmp, size_t dimension, const double*
     }
     else{
       if(APPROACH == 0 || APPROACH  == 1 || APPROACH  == 2){
-        new_round_vec(x[i], dimension, upper_bounds);
+        new_round_vec(x[i], dimension, lower_bounds, upper_bounds);
         for(int j = 0; j < dimension; j++){
           tmp[i][j] = x[i][j];
         }
-        decoding_vec(tmp[i], dimension, upper_bounds);
+        decoding_vec(tmp[i], dimension, lower_bounds, upper_bounds);
       }
       else{
-        decoding_vec(tmp[i], dimension, upper_bounds);
+        decoding_vec(tmp[i], dimension, lower_bounds, upper_bounds);
       }
     }
   }
@@ -732,20 +745,16 @@ void round_vec(double *x, size_t dimention_size, const double *lower_bounds, con
   double min_dist = 0;
   for(int i = 0; i < dimention_size; i++){
     if(lower_bounds[i] != -5){
-      // 補助値を計算
+      //補助値を計算
       for(int  j = 0; j <= (int)upper_bounds[i]; j++){
           y[j] = j;
       }
       //連続値に最も近い補助値 y^* を求める
-      if(x[i] <  0){
-        min_dist = fabs(y[0] + x[i]);  
-      }
-      else{
-        min_dist = fabs(y[0] - x[i]);
-      }
+      min_dist = fabs(fabs(y[0]) - fabs(x[i]));
       y_star = y[0];
+
       for (int j = 1; j <= (int)upper_bounds[i]; j++) {
-          double dist = fabs(y[j] - x[i]);
+          double dist = fabs(fabs(y[j]) - fabs(x[i]));;
           if (dist <= min_dist) {
               min_dist = dist;
               y_star = y[j];
@@ -756,11 +765,11 @@ void round_vec(double *x, size_t dimention_size, const double *lower_bounds, con
   }
 }
 
-void new_round_vec(double *x, size_t dimention_size, const double *upper_bounds){
+void new_round_vec(double *x, size_t dimention_size, const double *lower_bounds, const double *upper_bounds){
   double y[40]= {0};
 
   for(int i = 0; i < dimention_size; i++){
-    if(upper_bounds[i] != 5){
+    if(lower_bounds[i] != -5){
       // 補助値を計算
       for(int j = 0; j <= (int)upper_bounds[i] + 1; j++){
         y[j] = 1/(upper_bounds[i] + 1) * j;
@@ -808,9 +817,9 @@ void new_round_vec(double *x, size_t dimention_size, const double *upper_bounds)
   }
 }
 
-void decoding_vec(double *x, size_t dimention_size, const double *upper_bounds){
+void decoding_vec(double *x, size_t dimention_size, const double *lower_bounds, const double *upper_bounds){
   for(int i = 0; i < dimention_size; i++){
-    if(upper_bounds[i] != 5){
+    if(lower_bounds[i] != -5){
       x[i] = floor(x[i]*(upper_bounds[i] + 1));
       if(x[i] > upper_bounds[i]){
         x[i] = upper_bounds[i];
@@ -1333,12 +1342,34 @@ void my_de_nopcm(const char* function_name,
 void f1(const double *x, double *y, size_t dimension, double* optimal) {//sphere
   y[0] = 0;
   for(size_t i = 0; i < dimension; i++){
-    y[0] += fabs(optimal[i] - x[i])*fabs(optimal[i] - x[i]);
+    y[0] += (optimal[i] - x[i])*(optimal[i] - x[i]);
   }
+}
+
+void f8(const double *x, double *y, size_t dimension, double* optimal) {//rosenbrock
+  y[0] = 0;
+  for(size_t i = 0; i < dimension - 1; i++){
+    y[0] += 100*((optimal[i + 1] - x[i + 1]) - (optimal[i] - x[i]) * (optimal[i] - x[i]))*((optimal[i + 1] - x[i + 1]) - (optimal[i] - x[i]) * (optimal[i] - x[i])) + (optimal[i] - x[i] - 1)*(optimal[i] - x[i] - 1);
+  }
+}
+
+void f15(const double *x, double *y, size_t dimension, double* optimal) {//rastrigin
+  y[0] = 0;
+  for(size_t i = 0; i < dimension; i++){
+    y[0] += (optimal[i] - x[i])*(optimal[i] - x[i]) - 10*cos(2*M_PI*(optimal[i] - x[i]));
+  }
+
+  y[0] += 10*(double)dimension;
 }
 
 void my_evaluate_func(const double *x, double *y, const char * function_name, size_t dimension, double * optimal) {
   if(strcmp(function_name, "f1") == 0){
     f1(x, y, dimension, optimal);
+  }
+  else if(strcmp(function_name, "f8") == 0){
+    f8(x, y, dimension, optimal);
+  }
+  else if(strcmp(function_name, "f15") == 0){
+    f15(x, y, dimension, optimal);
   }
 }

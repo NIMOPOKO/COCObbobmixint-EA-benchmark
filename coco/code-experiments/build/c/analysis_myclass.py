@@ -79,11 +79,13 @@ def process_and_plot(directory, groups, output_directory, output_filename):
     plt.close()
 
 # 使用例
-for i in [1,3,7,15,31]:
-    for j in ["5d", "10d", "20d"]:#, "40d", "80d", "160d"]:
-        directory = "/home/nimo/de2/coco/code-experiments/build/c/output/de/f1/"+str(i)+"/"+ j
-        #output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plot1/"+str(i)
-        output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plot2/"+str(i)
-        output_filename = j +".png"
-        groups = ["L", "U-Lb", "U-Lm", "U-Lb", "U2-L"]
-        process_and_plot(directory, groups, output_directory, output_filename)
+for func in ["f1", "f8", "f15"]:
+    for t in [1,2,3,4]:
+        for i in [2,3,4,5]:
+            for j in ["5d", "10d", "20d"]:#, "40d", "80d", "160d"]:
+                directory = "/home/nimo/de2/coco/code-experiments/build/c/output/de/"+func+"/"+str(t)+"/"+str(i)+"/"+ j
+                #output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plot1/"+str(i)
+                output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plot2/"+func+"/"+str(t)+"/"+str(i)
+                output_filename = j +".png"
+                groups = ["L","U-Lb"]
+                process_and_plot(directory, groups, output_directory, output_filename)
