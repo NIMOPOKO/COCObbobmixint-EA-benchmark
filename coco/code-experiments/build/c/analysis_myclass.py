@@ -81,11 +81,21 @@ def process_and_plot(directory, groups, output_directory, output_filename):
 # 使用例
 for func in ["f1", "f8", "f15"]:
     for t in [1,2,3,4]:
-        for i in [2,3,4,5]:
-            for j in ["5d", "10d", "20d"]:#, "40d", "80d", "160d"]:
-                directory = "/home/nimo/de2/coco/code-experiments/build/c/output/de/"+func+"/"+str(t)+"/"+str(i)+"/"+ j
-                #output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plot1/"+str(i)
-                output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plot2/"+func+"/"+str(t)+"/"+str(i)
-                output_filename = j +".png"
-                groups = ["L","U-Lb"]
-                process_and_plot(directory, groups, output_directory, output_filename)
+        if t == 4:
+            for i in [2,3,4,5,6]:
+                for j in ["5d", "10d", "20d", "40d", "80d", "160d"]:
+                    directory = "/home/nimo/de2/coco/code-experiments/build/c/output/de/"+func+"/"+str(t)+"/"+str(i)+"/"+ j
+                    #output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plot1/"+str(i)
+                    output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plotl/"+func+"/"+str(t)+"/"+str(i)
+                    output_filename = j +".png"
+                    groups = ["L","U-Lb"]
+                    process_and_plot(directory, groups, output_directory, output_filename)
+        else:
+            for i in [2,3,4,5]:
+                for j in ["5d", "10d", "20d", "40d", "80d", "160d"]:
+                    directory = "/home/nimo/de2/coco/code-experiments/build/c/output/de/"+func+"/"+str(t)+"/"+str(i)+"/"+ j
+                    #output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plot1/"+str(i)
+                    output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plotl/"+func+"/"+str(t)+"/"+str(i)
+                    output_filename = j +".png"
+                    groups = ["B","U-B"]
+                    process_and_plot(directory, groups, output_directory, output_filename)

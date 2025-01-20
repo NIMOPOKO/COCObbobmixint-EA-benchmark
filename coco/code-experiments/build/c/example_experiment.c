@@ -28,7 +28,7 @@
 #define DE_F 0.5
 
 //MY_COCO_SETTINGS
-#define NUMBER_OF_PROBLEM 4320
+#define NUMBER_OF_PROBLEM 4590
 #define NUMBER_OF_TARGET 51
 
 typedef struct my_problem{
@@ -462,7 +462,12 @@ void my_example_experiment(const char *file_name,
     strcat(titlestr,function_name);
     sprintf(num, "/%d", (int)my_problem[i].r);
     strcat(titlestr,num);
-    sprintf(num, "/%d/", (int)my_problem[i].largest[0]);
+    if((int)my_problem[i].largest[0] == 1){
+      sprintf(num, "/6/");
+    }
+    else{
+      sprintf(num, "/%d/", (int)my_problem[i].largest[0]);
+    }
     strcat(titlestr,num);
     sprintf(num, "%ld", dimension);
     strcat(titlestr,num);
@@ -499,7 +504,7 @@ void my_example_experiment(const char *file_name,
     sprintf(num, "%ld", my_problem[i].instance);
     strcat(titlestr,num);
     strcat(titlestr,".txt");
-    // printf("%s\n",titlestr);
+    //printf("%s\n",titlestr);
     /* Run the algorithm at least once */
     for (size_t run = 1; run <= 1 + INDEPENDENT_RESTARTS; run++) {
       long evaluations_done = my_problem[i].evaluation_cnt;
@@ -510,10 +515,9 @@ void my_example_experiment(const char *file_name,
         break;
       }
       
-      // if(my_problem[i].dimension != 5 && my_problem[i].dimension != 10 && my_problem[i].dimension != 20){
+      // if(my_problem[i].largest[0] != 1){
       //   break;
       // }
-
       /* Call the optimization algorithm for the remaining number of evaluations */
       if(ALGORITHM == 0){
         my_de_nopcm(function_name,
@@ -530,8 +534,8 @@ void my_example_experiment(const char *file_name,
 
       }
     }
-    // if(my_problem[i].dimension == 5 || my_problem[i].dimension == 10 || my_problem[i].dimension == 20){
-    //printf("%s:dimension%ld:instance%ld:range[0,%.0f]:integer ratio%ld/5\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0], my_problem[i].r);
+    // if(my_problem[i].largest[0] == 1){
+    //   printf("%s:dimension%ld:instance%ld:range[0,%.0f]:integer ratio%ld/5\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0], my_problem[i].r);
     //   printf("optimal solution:");
     //   for(size_t j = 0; j < dimension; j++){
     //     printf("%lf ", my_problem[i].optimal[j]);
@@ -616,7 +620,8 @@ MY_PROBLEM* init_problem(coco_random_state_t *random_generator){
   // 各問題を初期化(func)
   char *function[] = {"f1", "f8", "f15"};
   size_t dimension[] = {5, 10, 20, 40, 80, 160};
-  double range[] = {2, 3, 4, 5};
+  double range[] = {2, 3, 4, 5, 6};
+  double coco_range[] = {1, 3, 7, 15};
   int problem_cnt = 0;
   double amount = -2;
   for(size_t func_cnt = 0; func_cnt < 3; func_cnt++){
@@ -624,6 +629,9 @@ MY_PROBLEM* init_problem(coco_random_state_t *random_generator){
       for(size_t range_cnt = 0; range_cnt < sizeof(range) / sizeof(range[0]); range_cnt++){
         for(size_t dimension_cnt = 0; dimension_cnt < 6; dimension_cnt++){
           for (size_t instance_count = 0; instance_count < 15; instance_count++){
+            if(r_cnt != 4 && range_cnt == 4){
+              break;
+            }
             problems[problem_cnt].function_name = (char*)malloc(strlen(function[func_cnt]) + 1);
             if (!problems[problem_cnt].function_name) {
                 fprintf(stderr, "Memory allocation failed for function_name.\n");
@@ -652,16 +660,34 @@ MY_PROBLEM* init_problem(coco_random_state_t *random_generator){
             for(size_t i = 0; i < dimension[dimension_cnt]; i++){
               problems[problem_cnt].best_solution[i] = 100;
             }
-            // 配列を初期化
-            for (size_t j = 0; j < dimension[dimension_cnt]*r_cnt/5; j++) {
-              problems[problem_cnt].smallest[j] = 0;
-              problems[problem_cnt].largest[j] = range[range_cnt];
-              problems[problem_cnt].optimal[j] = (int)(coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j] + 1) + problems[problem_cnt].smallest[j]);
+
+            if(range_cnt != 4){
+              // 配列を初期化
+              for (size_t j = 0; j < dimension[dimension_cnt]*r_cnt/5; j++) {
+                problems[problem_cnt].smallest[j] = 0;
+                problems[problem_cnt].largest[j] = range[range_cnt];
+                problems[problem_cnt].optimal[j] = (int)(coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j] + 1) + problems[problem_cnt].smallest[j]);
+              }
+              for (size_t j = dimension[dimension_cnt]*r_cnt/5; j < dimension[dimension_cnt]; j++) {
+                problems[problem_cnt].smallest[j] = -5;
+                problems[problem_cnt].largest[j] = 5;
+                problems[problem_cnt].optimal[j] = problems[problem_cnt].smallest[j] + coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j]);
+              }
             }
-            for (size_t j = dimension[dimension_cnt]*r_cnt/5; j < dimension[dimension_cnt]; j++) {
-              problems[problem_cnt].smallest[j] = -5;
-              problems[problem_cnt].largest[j] = 5;
-              problems[problem_cnt].optimal[j] = problems[problem_cnt].smallest[j] + coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j]);
+            else{
+              // 配列を初期化
+              for (size_t m = 0; m < 4; m++) {
+                for (size_t j = m*dimension[dimension_cnt]/5; j < (m + 1)*dimension[dimension_cnt]/5; j++) {
+                  problems[problem_cnt].smallest[j] = 0;
+                  problems[problem_cnt].largest[j] = coco_range[m];
+                  problems[problem_cnt].optimal[j] = (int)(coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j] + 1) + problems[problem_cnt].smallest[j]);
+                }
+              }
+              for (size_t j = 4*dimension[dimension_cnt]/5; j < (4 + 1)*dimension[dimension_cnt]/5; j++) {
+                problems[problem_cnt].smallest[j] = -5;
+                problems[problem_cnt].largest[j] = 5;
+                problems[problem_cnt].optimal[j] = (int)(coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j] + 1) + problems[problem_cnt].smallest[j]);
+              }
             }
 
             problem_cnt++;
@@ -986,11 +1012,11 @@ void de_nopcm(evaluate_function_t evaluate_func,
   int vector[3];
   double value_population[DE_N];
   double value_trial[DE_N];
-  FILE *fp;
+  //FILE *fp;
   double *sum = coco_allocate_vector(dimension); 
   double *sum2 = coco_allocate_vector(dimension); 
   int output_cnt = 0;
-  fp = fopen(titlestr, "w");
+  //fp = fopen(titlestr, "w");
 
   for (i = 0; i < DE_N; i++) {
         population[i] = coco_allocate_vector(dimension);
@@ -1014,7 +1040,7 @@ void de_nopcm(evaluate_function_t evaluate_func,
   while(evaluation  < max_budget){
     //hyoujyunhensa+output
     if(output_cnt == 0){
-      ea_sd_calc(sum, sum2, tmp, dimension, fp);
+      //ea_sd_calc(sum, sum2, tmp, dimension, fp);
     }
     output_cnt++;
     if(output_cnt == dimension){
@@ -1101,7 +1127,7 @@ void de_nopcm(evaluate_function_t evaluate_func,
   if(instance_cnt == 15){
     instance_cnt = 0;
   }
-  fclose(fp);
+  //fclose(fp);
   //memory free
   for (i = 0; i < DE_N; ++i) {
     coco_free_memory(population[i]);
