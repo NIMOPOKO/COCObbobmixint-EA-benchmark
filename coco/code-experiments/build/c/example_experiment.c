@@ -618,7 +618,7 @@ MY_PROBLEM* init_problem(coco_random_state_t *random_generator){
   }
 
   // 各問題を初期化(func)
-  char *function[] = {"f1", "f8", "f15"};
+  char *function[] = {"f1", "f3", "f8"};
   size_t dimension[] = {5, 10, 20, 40, 80, 160};
   double range[] = {2, 3, 4, 5, 6};
   double coco_range[] = {1, 3, 7, 15};
@@ -1372,6 +1372,26 @@ void f1(const double *x, double *y, size_t dimension, double* optimal) {//sphere
   }
 }
 
+void f2(const double *x, double *y, size_t dimension, double* optimal) {//sphere
+  y[0] = 0;
+  for(size_t i = 0; i < dimension; i++){
+    y[0] += pow(10, 6*i/(dimension - 1)) * (optimal[i] - x[i])*(optimal[i] - x[i]);
+  }
+
+  y[0] = pow(10, -3) * y[0];
+}
+
+void f3(const double *x, double *y, size_t dimension, double* optimal) {//rastrigin
+  y[0] = 0;
+  for(size_t i = 0; i < dimension; i++){
+    y[0] += (optimal[i] - x[i])*(optimal[i] - x[i]) - 10*cos(2*M_PI*(optimal[i] - x[i]));
+  }
+
+  y[0] += 10*(double)dimension;
+
+  y[0] = 0.1 * y[0];
+}
+
 void f8(const double *x, double *y, size_t dimension, double* optimal) {//rosenbrock
   y[0] = 0;
   for(size_t i = 0; i < dimension - 1; i++){
@@ -1379,23 +1399,14 @@ void f8(const double *x, double *y, size_t dimension, double* optimal) {//rosenb
   }
 }
 
-void f15(const double *x, double *y, size_t dimension, double* optimal) {//rastrigin
-  y[0] = 0;
-  for(size_t i = 0; i < dimension; i++){
-    y[0] += (optimal[i] - x[i])*(optimal[i] - x[i]) - 10*cos(2*M_PI*(optimal[i] - x[i]));
-  }
-
-  y[0] += 10*(double)dimension;
-}
-
 void my_evaluate_func(const double *x, double *y, const char * function_name, size_t dimension, double * optimal) {
   if(strcmp(function_name, "f1") == 0){
     f1(x, y, dimension, optimal);
   }
+  else if(strcmp(function_name, "f3") == 0){
+    f3(x, y, dimension, optimal);
+  }
   else if(strcmp(function_name, "f8") == 0){
     f8(x, y, dimension, optimal);
-  }
-  else if(strcmp(function_name, "f15") == 0){
-    f15(x, y, dimension, optimal);
   }
 }

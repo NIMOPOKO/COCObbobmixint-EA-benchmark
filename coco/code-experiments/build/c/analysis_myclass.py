@@ -42,7 +42,7 @@ def process_and_plot(directory, groups, output_directory, output_filename):
         data_by_group[group] = (data[:, 0], group_data/765)  # 1列目: x軸, 加算結果: y軸
 
     # プロット
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(6.5, 6))
 
     # 凡例用のデータを保存
     legend_info = []
@@ -51,13 +51,17 @@ def process_and_plot(directory, groups, output_directory, output_filename):
         ax.plot(x, smoothed_y, label=None, color=color_map[group], linewidth=2)  # 凡例なしで描画
         legend_info.append((group, x[-1], smoothed_y[-1], color_map[group]))  # グラフ右端の値を保存
 
+    # # グリッドを追加
+    # plt.grid(True, which="both", linestyle="--", linewidth=0.5)
+
     # 軸ラベルとタイトルを設定
     plt.xlabel("log10(# f-evals / dimension)", fontsize=12)
     plt.ylabel("Fraction of function, target pairs", fontsize=12)
-    plt.title("Benchmarking Comparison", fontsize=14)
     plt.ylim(0, 1)
     plt.xlim(0, 4)
     plt.grid(True, linestyle="--", linewidth=0.5)
+    # x軸の目盛りを1間隔で設定
+    plt.xticks(np.arange(0, 5, 1))  # 0から4まで1間隔
 
     # 出力ディレクトリが存在しない場合は作成
     if not os.path.exists(output_directory):
@@ -79,7 +83,7 @@ def process_and_plot(directory, groups, output_directory, output_filename):
     plt.close()
 
 # 使用例
-for func in ["f1", "f8", "f15"]:
+for func in ["f1", "f3", "f8"]:
     for t in [1,2,3,4]:
         if t == 4:
             for i in [2,3,4,5,6]:
@@ -97,5 +101,5 @@ for func in ["f1", "f8", "f15"]:
                     #output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plot1/"+str(i)
                     output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plotl/"+func+"/"+str(t)+"/"+str(i)
                     output_filename = j +".png"
-                    groups = ["B","U-B"]
+                    groups = ["L","U-Lb"]
                     process_and_plot(directory, groups, output_directory, output_filename)
