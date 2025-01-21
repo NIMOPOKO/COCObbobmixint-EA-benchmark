@@ -515,9 +515,9 @@ void my_example_experiment(const char *file_name,
         break;
       }
       
-      // if(my_problem[i].largest[0] != 1){
-      //   break;
-      // }
+      if(my_problem[i].dimension != 5){
+        break;
+      }
       /* Call the optimization algorithm for the remaining number of evaluations */
       if(ALGORITHM == 0){
         my_de_nopcm(function_name,
@@ -534,24 +534,24 @@ void my_example_experiment(const char *file_name,
 
       }
     }
-    // if(my_problem[i].largest[0] == 1){
-    //   printf("%s:dimension%ld:instance%ld:range[0,%.0f]:integer ratio%ld/5\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0], my_problem[i].r);
-    //   printf("optimal solution:");
-    //   for(size_t j = 0; j < dimension; j++){
-    //     printf("%lf ", my_problem[i].optimal[j]);
-    //   }
-    //   printf("\n");
+    if(my_problem[i].dimension == 5){
+      printf("%s:dimension%ld:instance%ld:range[0,%.0f]:integer ratio%ld/5\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0], my_problem[i].r);
+      printf("optimal solution:");
+      for(size_t j = 0; j < dimension; j++){
+        printf("%lf ", my_problem[i].optimal[j]);
+      }
+      printf("\n");
 
-    //   // if(ENCODING == 1 && APPROACH != 3){
-    //   //   decoding_vec(my_problem[i].best_solution, dimension, my_problem[i].largest);
-    //   // }
+      // if(ENCODING == 1 && APPROACH != 3){
+      //   decoding_vec(my_problem[i].best_solution, dimension, my_problem[i].largest);
+      // }
 
-    //   printf("best solution   :");
-    //   for(size_t j = 0; j < dimension; j++){
-    //     printf("%lf ", my_problem[i].best_solution[j]);
-    //   }
-    //   printf("\n");
-    // }
+      printf("best solution   :");
+      for(size_t j = 0; j < dimension; j++){
+        printf("%lf ", my_problem[i].best_solution[j]);
+      }
+      printf("\n");
+    }
     // printf("target hit result:\n");
     // for(size_t j = 0; j < NUMBER_OF_TARGET; j++){
     //   printf("%.2e:%d\n", target[j], my_problem[i].evaluate_result[j]);
@@ -1365,48 +1365,100 @@ void my_de_nopcm(const char* function_name,
 }
 
 //MY_EVALUATE_FUNC
-void f1(const double *x, double *y, size_t dimension, double* optimal) {//sphere
-  y[0] = 0;
-  for(size_t i = 0; i < dimension; i++){
-    y[0] += (optimal[i] - x[i])*(optimal[i] - x[i]);
+// void f1(const double *x, double *y, size_t dimension, double* optimal) {//sphere
+//   y[0] = 0;
+//   for(size_t i = 0; i < dimension; i++){
+//     y[0] += (optimal[i] - x[i])*(optimal[i] - x[i]);
+//   }
+// }
+
+// void f2(const double *x, double *y, size_t dimension, double* optimal) {//sphere
+//   y[0] = 0;
+//   for(size_t i = 0; i < dimension; i++){
+//     y[0] += pow(10, 6*i/(dimension - 1)) * (optimal[i] - x[i])*(optimal[i] - x[i]);
+//   }
+
+//   y[0] = pow(10, -3) * y[0];
+// }
+
+// void f3(const double *x, double *y, size_t dimension, double* optimal) {//rastrigin
+//   y[0] = 0;
+//   for(size_t i = 0; i < dimension; i++){
+//     y[0] += (optimal[i] - x[i])*(optimal[i] - x[i]) - 10*cos(2*M_PI*(optimal[i] - x[i]));
+//   }
+
+//   y[0] += 10*(double)dimension;
+
+//   y[0] = 0.1 * y[0];
+// }
+
+// void f8(const double *x, double *y, size_t dimension, double* optimal) {//rosenbrock
+//   y[0] = 0;
+//   for(size_t i = 0; i < dimension - 1; i++){
+//     y[0] += 100*((optimal[i + 1] - x[i + 1]) - (optimal[i] - x[i]) * (optimal[i] - x[i]))*((optimal[i + 1] - x[i + 1]) - (optimal[i] - x[i]) * (optimal[i] - x[i])) + (optimal[i] - x[i] - 1)*(optimal[i] - x[i] - 1);
+//   }
+// }
+
+static double f_sphere_raw(const double *x, const size_t number_of_variables) {
+
+  size_t i = 0;
+  double result;
+
+  result = 0.0;
+  for (i = 0; i < number_of_variables; ++i) {
+    result += x[i] * x[i];
   }
+
+  return result;
 }
 
-void f2(const double *x, double *y, size_t dimension, double* optimal) {//sphere
-  y[0] = 0;
-  for(size_t i = 0; i < dimension; i++){
-    y[0] += pow(10, 6*i/(dimension - 1)) * (optimal[i] - x[i])*(optimal[i] - x[i]);
-  }
+static double f_rosenbrock_raw(const double *x, const size_t number_of_variables) {
 
-  y[0] = pow(10, -3) * y[0];
+  size_t i = 0;
+  double result;
+  double s1 = 0.0, s2 = 0.0, tmp;
+
+  for (i = 0; i < number_of_variables - 1; ++i) {
+    tmp = (x[i] * x[i] - x[i + 1]);
+    s1 += tmp * tmp;
+    tmp = (x[i] - 1.0);
+    s2 += tmp * tmp;
+  }
+  result = 100.0 * s1 + s2;
+
+  return result;
 }
 
-void f3(const double *x, double *y, size_t dimension, double* optimal) {//rastrigin
-  y[0] = 0;
-  for(size_t i = 0; i < dimension; i++){
-    y[0] += (optimal[i] - x[i])*(optimal[i] - x[i]) - 10*cos(2*M_PI*(optimal[i] - x[i]));
+static double f_rastrigin_raw(const double *x, const size_t number_of_variables) {
+
+  size_t i = 0;
+  double result;
+  double sum1 = 0.0, sum2 = 0.0;
+
+  for (i = 0; i < number_of_variables; ++i) {
+    sum1 += cos(coco_two_pi * x[i]);
+    sum2 += x[i] * x[i];
   }
+  if (sum2 > 1e22) /* cos(inf) -> nan */
+    return sum2;
+  result = 10.0 * ((double) (long) number_of_variables - sum1) + sum2;
 
-  y[0] += 10*(double)dimension;
-
-  y[0] = 0.1 * y[0];
+  return result;
 }
 
-void f8(const double *x, double *y, size_t dimension, double* optimal) {//rosenbrock
-  y[0] = 0;
-  for(size_t i = 0; i < dimension - 1; i++){
-    y[0] += 100*((optimal[i + 1] - x[i + 1]) - (optimal[i] - x[i]) * (optimal[i] - x[i]))*((optimal[i + 1] - x[i + 1]) - (optimal[i] - x[i]) * (optimal[i] - x[i])) + (optimal[i] - x[i] - 1)*(optimal[i] - x[i] - 1);
-  }
-}
+
 
 void my_evaluate_func(const double *x, double *y, const char * function_name, size_t dimension, double * optimal) {
   if(strcmp(function_name, "f1") == 0){
-    f1(x, y, dimension, optimal);
+    //f1(x, y, dimension, optimal);
+    y[0] = f_sphere_raw(x, dimension);
   }
   else if(strcmp(function_name, "f3") == 0){
-    f3(x, y, dimension, optimal);
+    //f3(x, y, dimension, optimal);
+    y[0] = f_rastrigin_raw(x, dimension);
   }
   else if(strcmp(function_name, "f8") == 0){
-    f8(x, y, dimension, optimal);
+    //f8(x, y, dimension, optimal);
+    y[0] = f_rosenbrock_raw(x, dimension);
   }
 }
