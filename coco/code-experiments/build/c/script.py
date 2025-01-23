@@ -9,12 +9,12 @@ numa_nodes = [0, 1]
 job_options = [
     (0, 0, 0),  # DEラマルク型
     (0, 0, 1),  # DEボールドウィン型
-    (0, 1, 0),  # UDEラマルク型疑似round
-    (0, 1, 1),  # UDEラマルク型middle
+    #(0, 1, 0),  # UDEラマルク型疑似round
+    #(0, 1, 1),  # UDEラマルク型middle
     (0, 1, 2),  # UDEラマルク型best
     (0, 1, 3),   # UDEボールドウィン型
-    (0, 2, 0),  # U2DEラマルク型
-    (0, 2, 1)   # U2DEボールドウィン型   
+    #(0, 2, 0),  # U2DEラマルク型
+    #(0, 2, 1)   # U2DEボールドウィン型   
 ]
 
 # 非同期にジョブを実行するためのプロセスリスト
@@ -85,14 +85,14 @@ def submit_job_exe(i, numa_node):
         print("Errors:", stderr)
 
 # ThreadPoolExecutorで並列実行
-with ThreadPoolExecutor(max_workers=8) as executor:
-    for i in range(0,8):
+with ThreadPoolExecutor(max_workers=4) as executor:
+    for i in range(0,4):
         # NUMAノードを交互に割り当て
         numa_node = numa_nodes[i % len(numa_nodes)]
         executor.submit(submit_job_make, i, numa_node)
 
-with ThreadPoolExecutor(max_workers=8) as executor:
-    for i in range(0,8):
+with ThreadPoolExecutor(max_workers=4) as executor:
+    for i in range(0,4):
         # NUMAノードを交互に割り当て
         numa_node = numa_nodes[i % len(numa_nodes)]
         executor.submit(submit_job_exe, i, numa_node)

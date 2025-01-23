@@ -28,7 +28,7 @@
 #define DE_F 0.5
 
 //MY_COCO_SETTINGS
-#define NUMBER_OF_PROBLEM 4590
+#define NUMBER_OF_PROBLEM 12600
 #define NUMBER_OF_TARGET 51
 
 typedef struct my_problem{
@@ -510,14 +510,12 @@ void my_example_experiment(const char *file_name,
       long evaluations_done = my_problem[i].evaluation_cnt;
       long evaluations_remaining = (long) (dimension * BUDGET_MULTIPLIER) - evaluations_done;
       /* Break the loop if the target was hit or there are no more remaining evaluations */
-
       if((evaluations_remaining <= 0)){
         break;
       }
-      
-      if(my_problem[i].dimension != 5){
-        break;
-      }
+      // if(my_problem[i].dimension != 5 && my_problem[i].function_name != "f13"){
+      //   break;
+      // }
       /* Call the optimization algorithm for the remaining number of evaluations */
       if(ALGORITHM == 0){
         my_de_nopcm(function_name,
@@ -534,47 +532,39 @@ void my_example_experiment(const char *file_name,
 
       }
     }
-    if(my_problem[i].dimension == 5){
-      printf("%s:dimension%ld:instance%ld:range[0,%.0f]:integer ratio%ld/5\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0], my_problem[i].r);
-      printf("optimal solution:");
-      for(size_t j = 0; j < dimension; j++){
-        printf("%lf ", my_problem[i].optimal[j]);
-      }
-      printf("\n");
+    // if(my_problem[i].dimension == 5 && strcmp(my_problem[i].function_name, "f13") == 0){
+    //   printf("%s:dimension%ld:instance%ld:range[0,%.0f]:integer ratio%ld/5\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0], my_problem[i].r);
+    //   printf("optimal solution:");
+    //   for(size_t j = 0; j < dimension; j++){
+    //     printf("%lf ", my_problem[i].optimal[j]);
+    //   }
+    //   printf("\n");
 
-      // if(ENCODING == 1 && APPROACH != 3){
-      //   decoding_vec(my_problem[i].best_solution, dimension, my_problem[i].largest);
-      // }
+    //   printf("best solution   :");
+    //   for(size_t j = 0; j < dimension; j++){
+    //     printf("%lf ", my_problem[i].best_solution[j]);
+    //   }
+    //   printf("\n");
 
-      printf("best solution   :");
-      for(size_t j = 0; j < dimension; j++){
-        printf("%lf ", my_problem[i].best_solution[j]);
-      }
-      printf("\n");
-    }
-    // printf("target hit result:\n");
-    // for(size_t j = 0; j < NUMBER_OF_TARGET; j++){
-    //   printf("%.2e:%d\n", target[j], my_problem[i].evaluate_result[j]);
-    // }
-
-    fp = fopen(titlestr, "w");
-    while(1){
-      if(amount > 4){
-        break;
-      }
-      for(int k = 0; k < NUMBER_OF_TARGET; k++){
-        if(((double)dimension*pow(10, amount) >= (double)(double)my_problem[i].evaluate_result[k] ) && (my_problem[i].evaluate_result[k] != -1)){
-          target_count++;
-        }
-        else{
+      fp = fopen(titlestr, "w");
+      while(1){
+        if(amount > 4){
           break;
         }
+        for(int k = 0; k < NUMBER_OF_TARGET; k++){
+          if(((double)dimension*pow(10, amount) >= (double)(double)my_problem[i].evaluate_result[k] ) && (my_problem[i].evaluate_result[k] != -1)){
+            target_count++;
+          }
+          else{
+            break;
+          }
+        }
+        fprintf(fp,"%f %ld\n", amount, target_count);
+        target_count = 0;
+        amount += 0.001;
       }
-      fprintf(fp,"%f %ld\n", amount, target_count);
-      target_count = 0;
-      amount += 0.001;
-    }
-    fclose(fp);
+      fclose(fp);
+    //}
   }
   for (size_t i = 0; i < NUMBER_OF_PROBLEM; i++) {
     free_problem(&my_problem[i]);
@@ -611,27 +601,24 @@ void free_problem(MY_PROBLEM* problem) {
 }
 
 MY_PROBLEM* init_problem(coco_random_state_t *random_generator){
-  MY_PROBLEM* problems = (MY_PROBLEM*)malloc(NUMBER_OF_PROBLEM * sizeof(MY_PROBLEM));
+  MY_PROBLEM* problems = (MY_PROBLEM*)malloc( NUMBER_OF_PROBLEM * sizeof(MY_PROBLEM));
   if (!problems) {
       fprintf(stderr, "Memory allocation failed for MY_PROBLEM.\n");
       exit(EXIT_FAILURE);
   }
 
   // 各問題を初期化(func)
-  char *function[] = {"f1", "f3", "f8"};
+  char *function[] = {"f1", "f2", "f3", "f8", "f12", "f13", "f14"};
   size_t dimension[] = {5, 10, 20, 40, 80, 160};
   double range[] = {2, 3, 4, 5, 6};
   double coco_range[] = {1, 3, 7, 15};
   int problem_cnt = 0;
   double amount = -2;
-  for(size_t func_cnt = 0; func_cnt < 3; func_cnt++){
-    for(size_t r_cnt = 1; r_cnt <= 4; r_cnt++){
+  for(size_t func_cnt = 0; func_cnt < sizeof(function) / sizeof(function[0]); func_cnt++){
+    for(size_t r_cnt = 1; r_cnt < 5; r_cnt++){
       for(size_t range_cnt = 0; range_cnt < sizeof(range) / sizeof(range[0]); range_cnt++){
-        for(size_t dimension_cnt = 0; dimension_cnt < 6; dimension_cnt++){
+        for(size_t dimension_cnt = 0; dimension_cnt < sizeof(dimension) / sizeof(dimension[0]); dimension_cnt++){
           for (size_t instance_count = 0; instance_count < 15; instance_count++){
-            if(r_cnt != 4 && range_cnt == 4){
-              break;
-            }
             problems[problem_cnt].function_name = (char*)malloc(strlen(function[func_cnt]) + 1);
             if (!problems[problem_cnt].function_name) {
                 fprintf(stderr, "Memory allocation failed for function_name.\n");
@@ -686,7 +673,7 @@ MY_PROBLEM* init_problem(coco_random_state_t *random_generator){
               for (size_t j = 4*dimension[dimension_cnt]/5; j < (4 + 1)*dimension[dimension_cnt]/5; j++) {
                 problems[problem_cnt].smallest[j] = -5;
                 problems[problem_cnt].largest[j] = 5;
-                problems[problem_cnt].optimal[j] = (int)(coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j] + 1) + problems[problem_cnt].smallest[j]);
+                problems[problem_cnt].optimal[j] = problems[problem_cnt].smallest[j] + coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j]);
               }
             }
 
@@ -1399,29 +1386,64 @@ void my_de_nopcm(const char* function_name,
 //   }
 // }
 
-static double f_sphere_raw(const double *x, const size_t number_of_variables) {
-
+static double f_sphere_raw(const double *x, const size_t number_of_variables, const double *opt) {
   size_t i = 0;
-  double result;
+  double result = 0.0;
+  double shifted_x;
 
-  result = 0.0;
   for (i = 0; i < number_of_variables; ++i) {
-    result += x[i] * x[i];
+    shifted_x = x[i] - opt[i];
+    result += shifted_x * shifted_x;
   }
 
   return result;
 }
 
-static double f_rosenbrock_raw(const double *x, const size_t number_of_variables) {
+static double f_ellipsoid_raw(const double *x, const size_t number_of_variables, const double *opt) {
+  static const double condition = 1.0e6;
+  size_t i = 0;
+  double result;
+  double shifted_x;
 
+  result = (x[0] - opt[0]) * (x[0] - opt[0]);
+  for (i = 1; i < number_of_variables; ++i) {
+    double exponent = 1.0 * (double)(long)i / ((double)(long)number_of_variables - 1.0);
+    shifted_x = x[i] - opt[i];
+    result += pow(condition, exponent) * shifted_x * shifted_x;
+  }
+
+  return result;
+}
+
+static double f_rastrigin_raw(const double *x, const size_t number_of_variables, const double *opt) {
+  size_t i = 0;
+  double result;
+  double sum1 = 0.0, sum2 = 0.0;
+  double shifted_x;
+
+  for (i = 0; i < number_of_variables; ++i) {
+    shifted_x = x[i] - opt[i];
+    sum1 += cos(coco_two_pi * shifted_x);
+    sum2 += shifted_x * shifted_x;
+  }
+
+  if (sum2 > 1e22) /* cos(inf) -> nan */
+    return sum2;
+
+  result = 10.0 * ((double)(long)number_of_variables - sum1) + sum2;
+
+  return result;
+}
+
+static double f_rosenbrock_raw(const double *x, const size_t number_of_variables, const double *opt) {
   size_t i = 0;
   double result;
   double s1 = 0.0, s2 = 0.0, tmp;
 
   for (i = 0; i < number_of_variables - 1; ++i) {
-    tmp = (x[i] * x[i] - x[i + 1]);
+    tmp = ((x[i] - opt[i]) * (x[i] - opt[i]) - (x[i + 1] - opt[i + 1]));
     s1 += tmp * tmp;
-    tmp = (x[i] - 1.0);
+    tmp = (x[i] - opt[i] - 1.0);
     s2 += tmp * tmp;
   }
   result = 100.0 * s1 + s2;
@@ -1429,36 +1451,468 @@ static double f_rosenbrock_raw(const double *x, const size_t number_of_variables
   return result;
 }
 
-static double f_rastrigin_raw(const double *x, const size_t number_of_variables) {
-
-  size_t i = 0;
+static double f_bent_cigar_raw(const double *x, const size_t number_of_variables, const double *opt) {
+  static const double condition = 1.0e6;
+  size_t i;
   double result;
-  double sum1 = 0.0, sum2 = 0.0;
+  double shifted_x;
+
+  result = (x[0] - opt[0]) * (x[0] - opt[0]);
+  for (i = 1; i < number_of_variables; ++i) {
+    shifted_x = x[i] - opt[i];
+    result += condition * shifted_x * shifted_x;
+  }
+
+  return result;
+}
+
+static double f_sharp_ridge_raw(const double *x, const size_t number_of_variables, const double *opt) {
+  static const double alpha = 100.0;
+  const double d_vars_40 = 1.0; /* generalized: number_of_variables <= 40 ? 1 : number_of_variables / 40.0; */
+  const size_t vars_40 = 1;
+  size_t i = 0;
+  double result = 0.0;
+  double shifted_x;
+
+  for (i = vars_40; i < number_of_variables; ++i) {
+    shifted_x = x[i] - opt[i];
+    result += shifted_x * shifted_x;
+  }
+  result = alpha * sqrt(result / d_vars_40);
+  for (i = 0; i < vars_40; ++i) {
+    shifted_x = x[i] - opt[i];
+    result += shifted_x * shifted_x / d_vars_40;
+  }
+
+  return result;
+}
+
+static double f_different_powers_raw(const double *x, const size_t number_of_variables, const double *opt) {
+  size_t i;
+  double sum = 0.0;
+  double result;
+  double shifted_x;
 
   for (i = 0; i < number_of_variables; ++i) {
-    sum1 += cos(coco_two_pi * x[i]);
-    sum2 += x[i] * x[i];
+    double exponent = 2.0 + (4.0 * (double)(long)i) / ((double)(long)number_of_variables - 1.0);
+    shifted_x = x[i] - opt[i];
+    sum += pow(fabs(shifted_x), exponent);
   }
-  if (sum2 > 1e22) /* cos(inf) -> nan */
-    return sum2;
-  result = 10.0 * ((double) (long) number_of_variables - sum1) + sum2;
+  result = sqrt(sum);
 
   return result;
 }
 
 
+// static double f_bueche_rastrigin_raw(const double *x, const size_t number_of_variables) {
+
+//   double tmp = 0., tmp2 = 0.;
+//   size_t i;
+//   double result;
+
+
+//   for (i = 0; i < number_of_variables; ++i) {
+//     tmp += cos(2 * coco_pi * x[i]);
+//     tmp2 += x[i] * x[i];
+//   }
+//   result = 10.0 * ((double) (long) number_of_variables - tmp) + tmp2 + 0;
+//   return result;
+// }
+
+// static double f_linear_slope_raw(const double *x,
+//                                  const size_t number_of_variables,
+//                                  const double *best_parameter) {
+
+//   static const double alpha = 100.0;
+//   size_t i;
+//   double result = 0.0;
+  
+//   if (coco_vector_contains_nan(x, number_of_variables))
+//     return NAN;
+    
+//   for (i = 0; i < number_of_variables; ++i) {
+//     double base, exponent, si;
+
+//     base = sqrt(alpha);
+//     exponent = (double) (long) i / ((double) (long) number_of_variables - 1);
+//     if (best_parameter[i] > 0.0) {
+//       si = pow(base, exponent);
+//     } else {
+//       si = -pow(base, exponent);
+//     }
+//     /* boundary handling */
+//     if (x[i] * best_parameter[i] < 25.0) {
+//       result += 5.0 * fabs(si) - si * x[i];
+//     } else {
+//       result += 5.0 * fabs(si) - si * best_parameter[i];
+//     }
+//   }
+
+//   return result;
+// }
+
+// static double f_attractive_sector_raw(const double *x,
+//                                       const size_t number_of_variables,
+//                                       f_attractive_sector_data_t *data) {
+//   size_t i;
+//   double result;
+
+//   if (coco_vector_contains_nan(x, number_of_variables))
+//   	return NAN;
+
+//   result = 0.0;
+//   for (i = 0; i < number_of_variables; ++i) {
+//     if (data->xopt[i] * x[i] > 0.0) {
+//       result += 100.0 * 100.0 * x[i] * x[i];
+//     } else {
+//       result += x[i] * x[i];
+//     }
+//   }
+//   return result;
+// }
+
+// static double f_step_ellipsoid_raw(const double *x, const size_t number_of_variables, f_step_ellipsoid_data_t *data) {
+  
+//   static const double condition = 100;
+//   static const double alpha = 10.0;
+//   size_t i, j;
+//   double penalty = 0.0, x1;
+//   double result;
+  
+//   assert(number_of_variables > 1);
+
+//   if (coco_vector_contains_nan(x, number_of_variables))
+//   	return NAN;
+
+//   for (i = 0; i < number_of_variables; ++i) {
+//     double tmp;
+//     tmp = fabs(x[i]) - 5.0;
+//     if (tmp > 0.0)
+//       penalty += tmp * tmp;
+//   }
+  
+//   for (i = 0; i < number_of_variables; ++i) {
+//     double c1;
+//     data->x[i] = 0.0;
+//     c1 = sqrt(pow(condition / 10., (double) i / (double) (number_of_variables - 1)));
+//     for (j = 0; j < number_of_variables; ++j) {
+//       data->x[i] += c1 * data->rot2[i][j] * (x[j] - data->xopt[j]);
+//     }
+//   }
+//   x1 = data->x[0];
+  
+//   for (i = 0; i < number_of_variables; ++i) {
+//     if (fabs(data->x[i]) > 0.5) /* TODO: Documentation: no fabs() in documentation */
+//       data->x[i] = coco_double_round(data->x[i]);
+//     else
+//       data->x[i] = coco_double_round(alpha * data->x[i]) / alpha;
+//   }
+  
+//   for (i = 0; i < number_of_variables; ++i) {
+//     data->xx[i] = 0.0;
+//     for (j = 0; j < number_of_variables; ++j) {
+//       data->xx[i] += data->rot1[i][j] * data->x[j];
+//     }
+//   }
+  
+//   /* Computation core */
+//   result = 0.0;
+//   for (i = 0; i < number_of_variables; ++i) {
+//     double exponent;
+//     exponent = (double) (long) i / ((double) (long) number_of_variables - 1.0);
+//     result += pow(condition, exponent) * data->xx[i] * data->xx[i];
+//     ;
+//   }
+//   result = 0.1 * coco_double_max(fabs(x1) * 1.0e-4, result) + penalty + data->fopt;
+  
+//   return result;
+// }
+
+// static double f_discus_raw(const double *x, const size_t number_of_variables) {
+
+//   static const double condition = 1.0e6;
+//   size_t i;
+//   double result;
+  
+//   if (coco_vector_contains_nan(x, number_of_variables))
+//     return NAN;
+    
+//   result = condition * x[0] * x[0];
+//   for (i = 1; i < number_of_variables; ++i) {
+//     result += x[i] * x[i];
+//   }
+
+//   return result;
+// }
+
+// static double f_weierstrass_raw(const double *x, const size_t number_of_variables, f_weierstrass_data_t *data) {
+
+//   size_t i, j;
+//   double result;
+
+//   if (coco_vector_contains_nan(x, number_of_variables))
+//   	return NAN;
+
+//   result = 0.0;
+//   for (i = 0; i < number_of_variables; ++i) {
+//     for (j = 0; j < F_WEIERSTRASS_SUMMANDS; ++j) {
+//       result += cos(2 * coco_pi * (x[i] + 0.5) * data->bk[j]) * data->ak[j];
+//     }
+//   }
+//   result = 10.0 * pow(result / (double) (long) number_of_variables - data->f0, 3.0);
+
+//   return result;
+// }
+
+// static double f_schaffers_raw(const double *x, const size_t number_of_variables) {
+
+//   size_t i = 0;
+//   double result;
+
+//   assert(number_of_variables > 1);
+
+//   if (coco_vector_contains_nan(x, number_of_variables))
+//   	return NAN;
+
+//   /* Computation core */
+//   result = 0.0;
+//   for (i = 0; i < number_of_variables - 1; ++i) {
+//     const double tmp = x[i] * x[i] + x[i + 1] * x[i + 1];
+//     if (coco_is_inf(tmp) && coco_is_nan(sin(50.0 * pow(tmp, 0.1))))  /* sin(inf) -> nan */
+//       /* the second condition is necessary to pass the integration tests under Windows and Linux */
+//       return tmp;
+//     result += pow(tmp, 0.25) * (1.0 + pow(sin(50.0 * pow(tmp, 0.1)), 2.0));
+//   }
+//   result = pow(result / ((double) (long) number_of_variables - 1.0), 2.0);
+
+//   return result;
+// }
+
+// static double f_griewank_rosenbrock_raw(const double *x, const size_t number_of_variables) {
+
+//   size_t i = 0;
+//   double tmp = 0;
+//   double result;
+
+//   if (coco_vector_contains_nan(x, number_of_variables))
+//   	return NAN;
+
+//   /* Computation core */
+//   result = 0.0;
+//   for (i = 0; i < number_of_variables - 1; ++i) {
+//     const double c1 = x[i] * x[i] - x[i + 1];
+//     const double c2 = 1.0 - x[i];
+//     tmp = 100.0 * c1 * c1 + c2 * c2;
+//     result += tmp / 4000. - cos(tmp);
+//   }
+//   result = 10. + 10. * result / (double) (number_of_variables - 1);
+
+//   return result;
+// }
+
+// static double f_schwefel_raw(const double *x, const size_t number_of_variables) {
+
+//   size_t i = 0;
+//   double result;
+//   double penalty, sum;
+
+//   if (coco_vector_contains_nan(x, number_of_variables))
+//   	return NAN;
+
+//   /* Boundary handling*/
+//   penalty = 0.0;
+//   for (i = 0; i < number_of_variables; ++i) {
+//     const double tmp = fabs(x[i]) - 500.0;
+//     if (tmp > 0.0)
+//       penalty += tmp * tmp;
+//   }
+
+//   /* Computation core */
+//   sum = 0.0;
+//   for (i = 0; i < number_of_variables; ++i) {
+//     sum += x[i] * sin(sqrt(fabs(x[i])));
+//   }
+//   result = 0.01 * (penalty + 418.9828872724339 - sum / (double) number_of_variables);
+
+//   return result;
+// }
+
+// static double f_gallagher_raw(const double *x, const size_t number_of_variables, f_gallagher_data_t *data) {
+//   size_t i, j; /* Loop over dim */
+//   double *tmx;
+//   double a = 0.1;
+//   double tmp2, f = 0., f_add, tmp, f_pen = 0., f_true = 0.;
+//   double fac;
+//   double result;
+
+//   if (coco_vector_contains_nan(x, number_of_variables))
+//   	return NAN;
+
+//   fac = -0.5 / (double) number_of_variables;
+
+//   /* Boundary handling */
+//   for (i = 0; i < number_of_variables; ++i) {
+//     tmp = fabs(x[i]) - 5.;
+//     if (tmp > 0.) {
+//       f_pen += tmp * tmp;
+//     }
+//   }
+//   f_add = f_pen;
+//   /* Transformation in search space */
+//   /* TODO: this should rather be done in f_gallagher */
+//   tmx = coco_allocate_vector(number_of_variables);
+//   for (i = 0; i < number_of_variables; i++) {
+//     tmx[i] = 0;
+//     for (j = 0; j < number_of_variables; ++j) {
+//       tmx[i] += data->rotation[i][j] * x[j];
+//     }
+//   }
+//   /* Computation core*/
+//   for (i = 0; i < data->number_of_peaks; ++i) {
+//     tmp2 = 0.;
+//     for (j = 0; j < number_of_variables; ++j) {
+//       tmp = (tmx[j] - data->x_local[j][i]);
+//       tmp2 += data->arr_scales[i][j] * tmp * tmp;
+//     }
+//     tmp2 = data->peak_values[i] * exp(fac * tmp2);
+//     f = coco_double_max(f, tmp2);
+//   }
+
+//   f = 10. - f;
+//   if (f > 0) {
+//     f_true = log(f) / a;
+//     f_true = pow(exp(f_true + 0.49 * (sin(f_true) + sin(0.79 * f_true))), a);
+//   } else if (f < 0) {
+//     f_true = log(-f) / a;
+//     f_true = -pow(exp(f_true + 0.49 * (sin(0.55 * f_true) + sin(0.31 * f_true))), a);
+//   } else
+//     f_true = f;
+
+//   f_true *= f_true;
+//   f_true += f_add;
+//   result = f_true;
+//   coco_free_memory(tmx);
+//   return result;
+// }
+
+// static double f_katsuura_raw(const double *x, const size_t number_of_variables) {
+
+//   size_t i, j;
+//   double tmp, tmp2;
+//   double result;
+
+//   if (coco_vector_contains_nan(x, number_of_variables))
+//   	return NAN;
+
+//   /* Computation core */
+//   result = 1.0;
+//   for (i = 0; i < number_of_variables; ++i) {
+//     tmp = 0;
+//     for (j = 1; j < 33; ++j) {
+//       tmp2 = pow(2., (double) j);
+//       tmp += fabs(tmp2 * x[i] - coco_double_round(tmp2 * x[i])) / tmp2;
+//     }
+//     tmp = 1.0 + ((double) (long) i + 1) * tmp;
+//     /*result *= tmp;*/ /* Wassim TODO: delete once consistency check passed*/
+//     result *= pow(tmp, 10. / pow((double) number_of_variables, 1.2));
+//   }
+//   /*result = 10. / ((double) number_of_variables) / ((double) number_of_variables)
+//       * (-1. + pow(result, 10. / pow((double) number_of_variables, 1.2)));*/
+//   result = 10. / ((double) number_of_variables) / ((double) number_of_variables)
+//   * (-1. + result);
+
+//   return result;
+// }
+
+// static double f_lunacek_bi_rastrigin_raw(const double *x,
+//                                          const size_t number_of_variables,
+//                                          f_lunacek_bi_rastrigin_data_t *data) {
+//   double result;
+//   static const double condition = 100.;
+//   size_t i, j;
+//   double penalty = 0.0;
+//   static const double mu0 = 2.5;
+//   static const double d = 1.;
+//   const double s = 1. - 0.5 / (sqrt((double) (number_of_variables + 20)) - 4.1);
+//   const double mu1 = -sqrt((mu0 * mu0 - d) / s);
+//   double *tmpvect, sum1 = 0., sum2 = 0., sum3 = 0.;
+
+//   assert(number_of_variables > 1);
+
+//   if (coco_vector_contains_nan(x, number_of_variables))
+//   	return NAN;
+
+//   for (i = 0; i < number_of_variables; ++i) {
+//     double tmp;
+//     tmp = fabs(x[i]) - 5.0;
+//     if (tmp > 0.0)
+//       penalty += tmp * tmp;
+//   }
+
+//   /* x_hat */
+//   for (i = 0; i < number_of_variables; ++i) {
+//     data->x_hat[i] = 2. * x[i];
+//     if (data->xopt[i] < 0.) {
+//       data->x_hat[i] *= -1.;
+//     }
+//   }
+
+//   tmpvect = coco_allocate_vector(number_of_variables);
+//   /* affine transformation */
+//   for (i = 0; i < number_of_variables; ++i) {
+//     double c1;
+//     tmpvect[i] = 0.0;
+//     c1 = pow(sqrt(condition), ((double) i) / (double) (number_of_variables - 1));
+//     for (j = 0; j < number_of_variables; ++j) {
+//       tmpvect[i] += c1 * data->rot2[i][j] * (data->x_hat[j] - mu0);
+//     }
+//   }
+//   for (i = 0; i < number_of_variables; ++i) {
+//     data->z[i] = 0;
+//     for (j = 0; j < number_of_variables; ++j) {
+//       data->z[i] += data->rot1[i][j] * tmpvect[j];
+//     }
+//   }
+//   /* Computation core */
+//   for (i = 0; i < number_of_variables; ++i) {
+//     sum1 += (data->x_hat[i] - mu0) * (data->x_hat[i] - mu0);
+//     sum2 += (data->x_hat[i] - mu1) * (data->x_hat[i] - mu1);
+//     sum3 += cos(2 * coco_pi * data->z[i]);
+//   }
+//   result = coco_double_min(sum1, d * (double) number_of_variables + s * sum2)
+//       + 10. * ((double) number_of_variables - sum3) + 1e4 * penalty;
+//   coco_free_memory(tmpvect);
+
+//   return result;
+// }
 
 void my_evaluate_func(const double *x, double *y, const char * function_name, size_t dimension, double * optimal) {
   if(strcmp(function_name, "f1") == 0){
     //f1(x, y, dimension, optimal);
-    y[0] = f_sphere_raw(x, dimension);
+    y[0] = f_sphere_raw(x, dimension, optimal) * 1;
+  }
+  else if(strcmp(function_name, "f2") == 0){
+    //f8(x, y, dimension, optimal);
+    y[0] = f_ellipsoid_raw(x, dimension, optimal) * pow(10, -3);
   }
   else if(strcmp(function_name, "f3") == 0){
     //f3(x, y, dimension, optimal);
-    y[0] = f_rastrigin_raw(x, dimension);
+    y[0] = f_rastrigin_raw(x, dimension, optimal) * 0.1;
   }
   else if(strcmp(function_name, "f8") == 0){
     //f8(x, y, dimension, optimal);
-    y[0] = f_rosenbrock_raw(x, dimension);
+    y[0] = f_rosenbrock_raw(x, dimension, optimal) * pow(10, -2);
+  }
+  else if(strcmp(function_name, "f12") == 0){
+    //f8(x, y, dimension, optimal);
+    y[0] = f_bent_cigar_raw(x, dimension, optimal) * pow(10, -4);
+  }
+  else if(strcmp(function_name, "f13") == 0){
+    //f8(x, y, dimension, optimal);
+    y[0] = f_sharp_ridge_raw(x, dimension, optimal) * 0.1;
+  }
+  else if(strcmp(function_name, "f14") == 0){
+    //f8(x, y, dimension, optimal);
+    y[0] = f_different_powers_raw(x, dimension, optimal) * 1;
   }
 }

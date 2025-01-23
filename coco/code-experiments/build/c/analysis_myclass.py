@@ -83,7 +83,7 @@ def process_and_plot(directory, groups, output_directory, output_filename):
     plt.close()
 
 # 使用例
-for func in ["f1", "f3", "f8"]:
+for func in ["f1", "f2", "f3", "f8", "f12", "f13", "f14"]:
     for t in [1,2,3,4]:
         if t == 4:
             for i in [2,3,4,5,6]:
