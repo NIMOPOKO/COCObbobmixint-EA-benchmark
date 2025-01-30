@@ -28,7 +28,7 @@
 #define DE_F 0.5
 
 //MY_COCO_SETTINGS
-#define NUMBER_OF_PROBLEM 12600
+#define NUMBER_OF_PROBLEM 9720
 #define NUMBER_OF_TARGET 51
 
 typedef struct my_problem{
@@ -533,7 +533,7 @@ void my_example_experiment(const char *file_name,
       }
     }
     // if(my_problem[i].dimension == 5 && strcmp(my_problem[i].function_name, "f13") == 0){
-    //   printf("%s:dimension%ld:instance%ld:range[0,%.0f]:integer ratio%ld/5\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0], my_problem[i].r);
+     // printf("%s:dimension%ld:instance%ld:range[0,%.0f]:integer ratio%ld/5\n",my_problem[i].function_name, dimension, my_problem[i].instance, my_problem[i].largest[0], my_problem[i].r);
     //   printf("optimal solution:");
     //   for(size_t j = 0; j < dimension; j++){
     //     printf("%lf ", my_problem[i].optimal[j]);
@@ -608,9 +608,9 @@ MY_PROBLEM* init_problem(coco_random_state_t *random_generator){
   }
 
   // 各問題を初期化(func)
-  char *function[] = {"f1", "f2", "f3", "f8", "f12", "f13", "f14"};
+  char *function[] = {"f1", "f3", "f8"};
   size_t dimension[] = {5, 10, 20, 40, 80, 160};
-  double range[] = {2, 3, 4, 5, 6};
+  double range[] = {2, 3, 4, 5, 6, 7, 8, 9, 10};
   double coco_range[] = {1, 3, 7, 15};
   int problem_cnt = 0;
   double amount = -2;
@@ -648,7 +648,7 @@ MY_PROBLEM* init_problem(coco_random_state_t *random_generator){
               problems[problem_cnt].best_solution[i] = 100;
             }
 
-            if(range_cnt != 4){
+            //if(range_cnt != 4){
               // 配列を初期化
               for (size_t j = 0; j < dimension[dimension_cnt]*r_cnt/5; j++) {
                 problems[problem_cnt].smallest[j] = 0;
@@ -660,22 +660,22 @@ MY_PROBLEM* init_problem(coco_random_state_t *random_generator){
                 problems[problem_cnt].largest[j] = 5;
                 problems[problem_cnt].optimal[j] = problems[problem_cnt].smallest[j] + coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j]);
               }
-            }
-            else{
-              // 配列を初期化
-              for (size_t m = 0; m < 4; m++) {
-                for (size_t j = m*dimension[dimension_cnt]/5; j < (m + 1)*dimension[dimension_cnt]/5; j++) {
-                  problems[problem_cnt].smallest[j] = 0;
-                  problems[problem_cnt].largest[j] = coco_range[m];
-                  problems[problem_cnt].optimal[j] = (int)(coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j] + 1) + problems[problem_cnt].smallest[j]);
-                }
-              }
-              for (size_t j = 4*dimension[dimension_cnt]/5; j < (4 + 1)*dimension[dimension_cnt]/5; j++) {
-                problems[problem_cnt].smallest[j] = -5;
-                problems[problem_cnt].largest[j] = 5;
-                problems[problem_cnt].optimal[j] = problems[problem_cnt].smallest[j] + coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j]);
-              }
-            }
+            // }
+            // else{
+            //   // 配列を初期化
+            //   for (size_t m = 0; m < 4; m++) {
+            //     for (size_t j = m*dimension[dimension_cnt]/5; j < (m + 1)*dimension[dimension_cnt]/5; j++) {
+            //       problems[problem_cnt].smallest[j] = 0;
+            //       problems[problem_cnt].largest[j] = coco_range[m];
+            //       problems[problem_cnt].optimal[j] = (int)(coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j] + 1) + problems[problem_cnt].smallest[j]);
+            //     }
+            //   }
+            //   for (size_t j = 4*dimension[dimension_cnt]/5; j < (4 + 1)*dimension[dimension_cnt]/5; j++) {
+            //     problems[problem_cnt].smallest[j] = -5;
+            //     problems[problem_cnt].largest[j] = 5;
+            //     problems[problem_cnt].optimal[j] = problems[problem_cnt].smallest[j] + coco_random_uniform(random_generator) * (problems[problem_cnt].largest[j] - problems[problem_cnt].smallest[j]);
+            //   }
+            // }
 
             problem_cnt++;
           }
@@ -1553,19 +1553,17 @@ static double f_different_powers_raw(const double *x, const size_t number_of_var
 
 // static double f_attractive_sector_raw(const double *x,
 //                                       const size_t number_of_variables,
-//                                       f_attractive_sector_data_t *data) {
+//                                       const double *opt) {
 //   size_t i;
 //   double result;
-
-//   if (coco_vector_contains_nan(x, number_of_variables))
-//   	return NAN;
-
+//   double shifted_x;
 //   result = 0.0;
 //   for (i = 0; i < number_of_variables; ++i) {
-//     if (data->xopt[i] * x[i] > 0.0) {
-//       result += 100.0 * 100.0 * x[i] * x[i];
+//     shifted_x = x[i] - opt[i];
+//     if (opt[i] * shifted_x > 0.0) {
+//       result += 100.0 * 100.0 * shifted_x * shifted_x;
 //     } else {
-//       result += x[i] * x[i];
+//       result += shifted_x * shifted_x;
 //     }
 //   }
 //   return result;
@@ -1578,11 +1576,6 @@ static double f_different_powers_raw(const double *x, const size_t number_of_var
 //   size_t i, j;
 //   double penalty = 0.0, x1;
 //   double result;
-  
-//   assert(number_of_variables > 1);
-
-//   if (coco_vector_contains_nan(x, number_of_variables))
-//   	return NAN;
 
 //   for (i = 0; i < number_of_variables; ++i) {
 //     double tmp;
