@@ -108,9 +108,9 @@ for func in ["f1", "f3", "f8"]:
     for t in [1,2,3,4]:
         for i in [2,3,4,5,6,7,8,9,10]:
             for j in ["5d", "10d", "20d", "40d", "80d", "160d"]:
-                directory = "/home/nimo/de2/coco/code-experiments/build/c/output/de/"+func+"/"+str(t)+"/"+str(i)+"/"+ j
+                directory = "./output/de/"+func+"/"+str(t)+"/"+str(i)+"/"+ j
                 #output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plot1/"+str(i)
-                output_directory = "/home/nimo/de2/coco/code-experiments/build/c/plotl/"+func+"/"+str(t)+"/"+str(i)
+                output_directory = "./plotb/"+func+"/"+str(t)+"/"+str(i)
                 output_filename = func + "_ratio" + str(t) + "_range" + str(i) + "_" + j +".pdf"
-                groups = ["L","U-Lb"]
+                groups = ["B","U-B"]
                 process_and_plot(directory, groups, output_directory, output_filename)
