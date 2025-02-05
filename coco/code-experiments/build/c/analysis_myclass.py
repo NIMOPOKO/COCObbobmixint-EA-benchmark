@@ -23,7 +23,10 @@ def process_and_plot(directory, groups, output_directory, output_filename):
         
         # 各グループのファイルを順に読み込む
         for i in range(15):  # 0から14までのファイル
-            filename = f"{group}-{i}.txt"
+            if group == "U-L":
+                filename = f"U-Lb-{i}.txt"
+            else:
+                filename = f"{group}-{i}.txt"
             filepath = os.path.join(directory, filename)
             
             if not os.path.isfile(filepath):
